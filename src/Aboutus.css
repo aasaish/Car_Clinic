@@ -1,0 +1,35 @@
+/* General Page Styling */
+.why {
+    background-color: #000; /* Black background for the section */
+    color: white; /* White text color for paragraphs */
+    padding: 30px;
+    font-family: Arial, sans-serif;
+  }
+  
+  .why h1 {
+    text-align: center; /* Left align the heading */
+    color: hsl(39, 70%, 25%); /* Golden color for headings */
+    font-size: 2rem;
+    margin-bottom: 20px;
+  }
+  
+  .why p {
+    font-size: 1rem;
+    line-height: 1.6;
+    margin-bottom: 15px;
+    text-align: left; /* Left align the paragraphs */
+    color: hsl(0, 0%, 100%); 
+  }
+  
+  .why div {
+    margin-bottom: 40px;
+  }
+  
+  /* Optional: Styling the background of each section */
+  .why .why-section {
+    background-color: #111; /* Dark background for each section */
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(255, 215, 0, 0.2); /* Subtle golden shadow */
+  }
+  

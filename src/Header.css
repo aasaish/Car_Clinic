@@ -1,0 +1,49 @@
+/* src/Header.css */
+.App-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #030303; /* Dark grey background */
+    padding: 5px 10px; /* Reduced padding */
+    color: hsla(39, 100%, 32%, 0.249); /* White text */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Slight shadow for depth */
+    height: 60px; /* Fixed height */
+    min-height: 50px; /* Optional: Ensures header isn't too small */
+  }
+  
+  
+  .header-left {
+    display: flex;
+    align-items: center;
+  }
+  .header-image {
+    height: 70px; /* Adjust the size as needed */
+    width: 70px; /* Ensure the width and height are the same for a circular logo */
+    margin-right: 10px;
+    border-radius: 30%; /* Makes the logo image round */
+    object-fit: cover; /* Ensures the image doesn't get distorted */
+  }
+  
+  
+  .header-right {
+    display: flex;
+    gap: 15px; /* Space between buttons */
+  }
+  
+  .header-button {
+    background: transparent;
+    color: rgb(0, 0, 0);
+    border: 2px solid white;
+    padding: 10px 15px;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .header-button:hover {
+    background-color: white;
+    color: #333; /* Dark text on hover */
+    border-color: #333;
+  }
+  

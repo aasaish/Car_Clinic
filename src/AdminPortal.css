@@ -1,0 +1,114 @@
+/* src/AdminPortal.css */
+
+/* Overall Admin Portal Styling */
+.admin-portal {
+  display: flex;
+  padding: 20px;
+  background-color: #111; /* Dark background */
+  min-height: 100vh;
+  color: white; /* White text */
+}
+
+.sidebar {
+  width: 250px;
+  background-color: #222; /* Darker background for sidebar */
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(255, 215, 0, 0.2); /* Golden shadow */
+}
+
+.sidebar button {
+  background-color: #444; /* Grey button background */
+  color: white;
+  padding: 12px 20px;
+  width: 100%;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 5px;
+  margin-bottom: 15px;
+  transition: background-color 0.3s ease;
+}
+
+.sidebar button:hover {
+  background-color: #333; /* Darker grey on hover */
+}
+
+/* Table Container Styling */
+.table-container {
+  flex-grow: 1;
+  margin-left: 20px;
+  background-color: #111; /* Dark background for the table container */
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(255, 215, 0, 0.2); /* Golden shadow */
+}
+
+/* Table Styling */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #111; /* Dark background */
+  color: white; /* White text */
+  border-radius: 8px;
+}
+
+.data-table th, .data-table td {
+  padding: 12px; /* Increased padding for better spacing */
+  text-align: left;
+  border: 1px solid #444; /* Dark grey border */
+}
+
+.data-table th {
+  background-color: #333; /* Dark grey background for headers */
+  color: hsl(39, 70%, 25%); /* Golden text for headers */
+}
+
+.data-table tr:nth-child(even) {
+  background-color: #222; /* Slightly lighter dark rows for readability */
+}
+
+.data-table tr:hover {
+  background-color: #444; /* Darker hover effect */
+}
+
+/* Button Styling for Actions (Approve/Reject) */
+.approve-btn, .reject-btn {
+  padding: 8px 16px;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s ease;
+}
+
+.approve-btn {
+  background-color: #4CAF50; /* Green for approve button */
+}
+
+.approve-btn:hover {
+  background-color: #45a049; /* Darker green on hover */
+}
+
+.reject-btn {
+  background-color: #f44336; /* Red for reject button */
+}
+
+.reject-btn:hover {
+  background-color: #e53935; /* Darker red on hover */
+}
+
+/* Title Styling */
+h1 {
+  text-align: center;
+  color: hsl(39, 70%, 25%); /* Golden text */
+  margin-bottom: 20px;
+}
+
+h2 {
+  text-align: center;
+  color: hsl(39, 70%, 25%); /* Golden text */
+  margin-bottom: 15px;
+}
+

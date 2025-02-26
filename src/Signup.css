@@ -1,0 +1,155 @@
+/* General Styles */
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #000; /* Black background */
+  color: hsl(39, 70%, 25%); /* Golden text color */
+}
+
+h1, h2 {
+  text-align: center;
+  color: hsl(39, 70%, 25%); /* Golden color */
+}
+
+/* Signup Container */
+.signup-container {
+  max-width: 800px;
+  margin: 40px auto;
+  padding: 20px;
+  background-color: #111; /* Dark black container */
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(255, 215, 0, 0.2); /* Subtle golden shadow */
+}
+
+/* Navigation Buttons for User/Mechanic Signup */
+.signup-container .navigation-buttons {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.signup-container .navigation-buttons button {
+  padding: 12px 25px;
+  margin: 0 15px;
+  background-color: #555; /* Dark grey background */
+  color: white; /* White text */
+  border: 1px solid #444; /* Dark grey border */
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.3s ease, color 0.3s ease, transform 0.3s ease;
+  text-transform: uppercase;
+}
+
+.signup-container .navigation-buttons button:hover {
+  background-color: hsl(39, 70%, 25%); /* Golden hover background */
+  color: black; /* Black text on hover */
+  transform: translateY(-2px); /* Slight lift effect */
+}
+
+.signup-container .navigation-buttons button:focus {
+  outline: none;
+  border-color: hsl(39, 70%, 25%); /* Golden focus border */
+  box-shadow: 0 0 5px rgba(255, 215, 0, 0.5); /* Golden glow on focus */
+}
+
+.signup-container .navigation-buttons button.active {
+  background-color: hsl(39, 70%, 25%); /* Golden background for active state */
+  color: black;
+}
+
+/* Form Styles */
+.signup-form {
+  width: 100%;
+}
+
+.signup-form table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+
+.signup-form td {
+  padding: 10px;
+  text-align: left;
+}
+
+.signup-form label {
+  font-weight: bold;
+}
+
+.signup-form input[type="text"],
+.signup-form input[type="email"],
+.signup-form input[type="tel"],
+.signup-form input[type="password"],
+.signup-form input[type="file"] {
+  width: 100%;
+  padding: 10px;
+  margin-top: 5px;
+  border: 1px solid grey; /* Grey border */
+  border-radius: 5px;
+  font-size: 1rem;
+  background-color: #222; /* Dark input background */
+  color: hsl(39, 70%, 25%); /* Golden text */
+}
+
+.signup-form input:focus {
+  outline: none;
+  border-color: hsl(39, 70%, 25%); /* Golden focus border */
+  box-shadow: 0 0 5px rgba(255, 215, 0, 0.5); /* Golden glow on focus */
+}
+
+/* Submit Button */
+.signup-form button {
+  display: block; /* Ensure button behaves as a block-level element */
+  margin: 0 auto; /* Center the button horizontally */
+  padding: 12px;
+  background-color: rgb(80, 78, 78); /* Grey button */
+  color: white; /* White text */
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  width: 50%; /* Adjust width to your liking (50% is just an example) */
+}
+
+.signup-form button:hover {
+  background-color: hsl(39, 70%, 25%); /* Golden hover background */
+  color: black; /* Black text on hover */
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .signup-container {
+    padding: 15px;
+  }
+
+  .signup-form table {
+    font-size: 0.9rem;
+  }
+
+  .signup-container .navigation-buttons button {
+    padding: 8px 15px;
+    font-size: 0.9rem;
+  }
+
+  h1, h2 {
+    font-size: 1.5rem;
+  }
+  .google-btn {
+    background-color: #db4437;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    font-size: 16px;
+    border-radius: 5px;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 10px;
+  }
+  
+  .google-btn:hover {
+    background-color: #c1351d;
+  }
+}

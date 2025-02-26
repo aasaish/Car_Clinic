@@ -1,0 +1,62 @@
+/* src/ContactUs.css */
+.contact-us-container {
+  max-width: 600px;
+  margin: 40px auto;
+  padding: 20px;
+  background-color: #111; /* Dark black container */
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(255, 215, 0, 0.2);
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.contact-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  font-size: 14px;
+  margin-bottom: 5px;
+  color: #333;
+}
+
+.form-group input,
+.form-group textarea {
+  padding: 10px;
+  width: 100%;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 14px;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  border-color: #4CAF50;
+}
+
+.submit-btn {
+  display: block;
+  margin: 0 auto;
+  padding: 12px;
+  background-color: rgb(80, 78, 78); /* Grey button */
+  color: white; /* White text */
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  width: 50%; /* Adjust width to your liking (50% is just an example) */
+}
+
+.submit-btn:hover {
+  background-color: hsl(39, 70%, 25%); /* Golden hover background */
+  color: black; /* Black text on hover */
+}
