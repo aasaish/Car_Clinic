@@ -85,6 +85,18 @@ p {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+.cs-main-container {
+  border-radius: 20px !important;
+}
+
+#root > div > div.content-container > div > div {
+  margin-bottom: 20px !important;
+}
+
+#root > div > div.content-container > div > div > div > div > div.cs-message-input > div:nth-child(3) > button {
+  margin: auto !important;
+}
+
 .submit-btn:hover {
   background-color: #333; /* Darker grey on hover */
 }
@@ -93,4 +105,57 @@ p {
   outline: none;
   background-color: hsl(39, 70%, 25%); /* Golden button on focus */
   color: black; /* Black text on focus */
+}
+
+.cs-message-list {
+  background-color:#f1e7db !important;
+}
+
+.chat-box {
+  height: 80vh;
+  width: 500px;
+  border-radius: 30px !important;
+  /* background-color: rgb(38, 47, 47); */
+  margin-top: 30px;
+}
+.cs-message__content {
+  background-color: #cfe6e7 !important;
+}
+.cs-button--attachment {
+  display: none !important;
+}
+.cs-message-input {
+  border-bottom-left-radius: 20px;
+  background-color: #f1e7db !important;
+}
+.App .cs-message-list .ps {
+  background-image: linear-gradient(
+    96deg,
+    rgba(255, 255, 255, 1) 0%,
+    rgba(255, 255, 255, 0.5) 10%,
+    #ddefbb 100%
+  );
+  transform: translatex(0px) translatey(0px);
+}
+.cs-message-input__content-editor-wrapper {
+  margin-left: 8px !important;
+  padding: 15px 15px !important;
+  margin-top: 10px !important;
+  margin-bottom: 10px !important;
+}
+.cs-typing-indicator {
+  right: 0px !important;
+  background-color: rgb(203, 234, 234) !important;
+}
+@media (max-width: 600px) {
+  .chat-box {
+    width: 100%;
+    height: 85vh !important;
+    margin: 0px !important;
+  }
+  .dashboard-container {
+    /* padding: 3px !important; */
+    height: auto;
+    flex-direction: column;
+  }
 }
