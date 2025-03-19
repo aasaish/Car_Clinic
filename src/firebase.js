@@ -2,7 +2,7 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
-import { getDatabase } from "firebase/database";  // For Realtime Database
+// import { getDatabase } from "firebase/database";  
 
 
 // Replace the below config object with your Firebase project configuration

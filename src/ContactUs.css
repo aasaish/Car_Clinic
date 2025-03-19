@@ -19,19 +19,23 @@ h1 {
 }
 
 .form-group {
+  display: flex;
+  flex-direction: column; /* Ensure label is above input */
+  align-items: flex-start;
   margin-bottom: 15px;
 }
 
 .form-group label {
   font-size: 14px;
   margin-bottom: 5px;
+  color: white;
   color: #333;
 }
 
 .form-group input,
 .form-group textarea {
   padding: 10px;
-  width: 100%;
+  width: 98%;
   border: 1px solid #ccc;
   border-radius: 5px;
   font-size: 14px;

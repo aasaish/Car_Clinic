@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import './Rating.css';
 
@@ -9,8 +9,26 @@ const Rating = () => {
     comments: '',
   });
 
-  // Firebase database URL
+  const [mechanics, setMechanics] = useState([]); // Store approved mechanics
+
+  // Firebase database URLs
+  const mechanicsURL = "https://car-clinic-9cc74-default-rtdb.firebaseio.com/approvedMechanics.json";
   const firebaseURL = "https://car-clinic-9cc74-default-rtdb.firebaseio.com/ratings.json";
+
+  useEffect(() => {
+    const fetchMechanics = async () => {
+      try {
+        const response = await axios.get(mechanicsURL);
+        if (response.data) {
+          const approvedMechanics = Object.values(response.data);
+          setMechanics(approvedMechanics);
+        }
+      } catch (error) {
+        console.error("Error fetching mechanics:", error);
+      }
+    };
+    fetchMechanics();
+  }, []);
 
   // Handle input changes
   const handleChange = (e) => {
@@ -54,15 +72,20 @@ const Rating = () => {
       <h2>Rate Your Mechanic</h2>
       <form className="rating-form" onSubmit={handleSubmit}>
         <label htmlFor="mechanicName">Mechanic Name:</label>
-        <input
-          type="text"
+        <select
           id="mechanicName"
           name="mechanicName"
           value={formData.mechanicName}
           onChange={handleChange}
-          placeholder="Enter mechanic's name"
           required
-        />
+        >
+          <option value="">Select a mechanic</option>
+          {mechanics.map((mechanic, index) => (
+            <option key={index} value={mechanic.name}>
+              {mechanic.name}
+            </option>
+          ))}
+        </select>
 
         <label htmlFor="rating">Rating (1-5):</label>
         <select

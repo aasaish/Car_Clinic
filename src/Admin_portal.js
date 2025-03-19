@@ -1,15 +1,43 @@
 import React, { useEffect, useState } from 'react';
 import './AdminPortal.css'; // Ensure CSS file is correctly imported
 import axios from 'axios';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { getDatabase, ref, remove, set } from 'firebase/database';
+import { auth } from './firebase';
+
 
 const AdminPortal = () => {
+  const database = getDatabase();
   // State to handle active table view
   const [activeTable, setActiveTable] = useState('user'); // Default table view is 'user'
   const [queriesData, setQueriesData] = useState([]);
   const [ratingsData, setRatingsData] = useState([]);
+  const [usersData, setUsersData] = useState([]);
+  const [mechanicsData, setMechanicsData] = useState([]);
 
   const queriesFirebaseURL = 'https://car-clinic-9cc74-default-rtdb.firebaseio.com/contact_us.json';
   const ratingsFirebaseURL = 'https://car-clinic-9cc74-default-rtdb.firebaseio.com/ratings.json';
+  const mechanicsFirebaseURL = 'https://car-clinic-9cc74-default-rtdb.firebaseio.com/mechanics.json';
+
+// Fetch users from backend
+  const fetchUsersData = async () => {
+    try {
+      const response = await axios.get("http://localhost:5000/getUsers"); // Backend API
+      setUsersData(response.data);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+    }
+  };
+
+  const fetchMechanicsData = async () => {
+    try {
+      const response = await axios.get(mechanicsFirebaseURL);
+      const mechanicsArray = response.data ? Object.entries(response.data).map(([id, value]) => ({ id, ...value })) : [];
+      setMechanicsData(mechanicsArray);
+    } catch (error) {
+      console.error('Error fetching mechanics:', error);
+    }
+  };
 
   // Fetch Queries Data from Firebase
   const fetchQueriesData = async () => {
@@ -34,20 +62,51 @@ const AdminPortal = () => {
   };
 
   useEffect(() => {
+    fetchUsersData();
     fetchQueriesData();
     fetchRatingsData();
+    fetchMechanicsData();
   }, []);
 
-  // Sample data for User and Mechanic tables
-  const users = [
-    { name: 'John Doe', email: 'john@example.com', phone: '123-456-7890' },
-    { name: 'Jane Smith', email: 'jane@example.com', phone: '987-654-3210' },
-  ];
 
-  const mechanics = [
-    { name: 'Mark Lee', experience: '5 years', field: 'Engine Repair', address: '1234 Main St' },
-    { name: 'Lucy Brown', experience: '3 years', field: 'Bodywork', address: '5678 Elm St' },
-  ];
+  const handleApprove = async (mechanic) => {
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, mechanic.email, mechanic.password);
+      const user = userCredential.user;
+  
+      // Store mechanic in 'approvedMechanics' collection
+      await set(ref(database, `approvedMechanics/${user.uid}`), {
+        uid: user.uid,
+        name: mechanic.name,
+        email: mechanic.email,
+        phone: mechanic.phone,
+        role: 'mechanic',
+        status: 'approved',
+        specialty: mechanic.specialty,
+        address: mechanic.address,
+      });
+  
+      // Remove from 'mechanics' collection after approval
+      await remove(ref(database, `mechanics/${mechanic.id}`));
+  
+      alert(`Mechanic ${mechanic.name} approved and moved to 'approvedMechanics' collection!`);
+      fetchMechanicsData(); // Refresh UI
+    } catch (error) {
+      console.error('Error approving mechanic:', error);
+      alert(`Failed to approve mechanic: ${error.message}`);
+    }
+  };
+  
+  const handleReject = async (mechanicId) => {
+    try {
+      await remove(ref(database, `mechanics/${mechanicId}`));
+      alert('Mechanic request rejected and removed.');
+      fetchMechanicsData(); // Refresh mechanic list
+    } catch (error) {
+      console.error('Error rejecting mechanic:', error);
+      alert('Failed to reject mechanic.');
+    }
+  };
 
   return (
     <div className="admin-portal">
@@ -68,8 +127,17 @@ const AdminPortal = () => {
                 <th>Phone Number</th>
               </tr>
             </thead>
-            <tbody>
+            {/* <tbody>
               {users.map((user, index) => (
+                <tr key={index}>
+                  <td>{user.name}</td>
+                  <td>{user.email}</td>
+                  <td>{user.phone}</td>
+                </tr>
+              ))}
+            </tbody> */}
+            <tbody>
+              {usersData.map((user, index) => (
                 <tr key={index}>
                   <td>{user.name}</td>
                   <td>{user.email}</td>
@@ -85,22 +153,22 @@ const AdminPortal = () => {
             <thead>
               <tr>
                 <th>Name</th>
-                <th>Experience</th>
+                <th>Email</th>
                 <th>Field</th>
                 <th>Address</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {mechanics.map((mechanic, index) => (
+              {mechanicsData.map((mechanic, index) => (
                 <tr key={index}>
                   <td>{mechanic.name}</td>
-                  <td>{mechanic.experience}</td>
-                  <td>{mechanic.field}</td>
+                  <td>{mechanic.email}</td>
+                  <td>{mechanic.specialty}</td>
                   <td>{mechanic.address}</td>
                   <td>
-                    <button className="approve-btn">Approve</button>
-                    <button className="reject-btn">Reject</button>
+                    <button className="approve-btn" onClick={() => handleApprove(mechanic)}>Approve</button>
+                    <button className="reject-btn" onClick={() => handleReject(mechanic.id)}>Reject</button>
                   </td>
                 </tr>
               ))}

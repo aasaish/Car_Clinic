@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import './App.css';
 import Header from './Header';
@@ -13,12 +13,36 @@ import VirtualAssistance from './Virtual_assistance';
 import AdminPortal from './Admin_portal';
 import MechanicPortal from './Mechanic_portal';
 import Rating from './Rating';
+import { useEffect } from 'react';
+import { auth } from './firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 
 function App() {
+
+  const [user, setUser] = useState(null);
+
+// useEffect( ()=> {
+//   onAuthStateChanged(auth, (user) => {
+//     if (user){
+//       console.log("hi", user);
+//     }else{
+//       console.log("you are log out");
+//     }
+//   });
+// },[])
+
+useEffect(() => {
+  const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    setUser(currentUser); // Store user globally
+  });
+
+  return () => unsubscribe(); // Cleanup listener on unmount
+}, []);
+
   return (
     <Router>
       <div className="App">
-        <Header />
+      <Header user={user} setUser={setUser} />
         <div className="content-container">
           <Routes>
             <Route path="/" element={<HomePage />} />

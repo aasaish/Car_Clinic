@@ -33,6 +33,13 @@ h1 {
   text-align: left;
 }
 
+.labels {
+  display: flex;
+  flex-direction: column; /* Stack label above input */
+  align-items: flex-start;
+  margin-bottom: 15px;
+}
+
 .appointment-form label {
   font-weight: bold;
 }

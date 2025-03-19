@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import './Signup.css';
 import { signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from './firebase';
+import axios from 'axios';
 
 const SignUp = () => {
   const [userType, setUserType] = useState('user'); // Default to 'user' signup
@@ -13,7 +14,9 @@ const SignUp = () => {
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [specialty, setSpecialty] = useState('');
-  const [paymentProof, setPaymentProof] = useState(null);
+  // const [paymentProof, setPaymentProof] = useState(null);
+
+  const firebaseURL = "https://car-clinic-9cc74-default-rtdb.firebaseio.com/mechanics.json"; // Firebase Database URL
 
   // Handle form submit
   const handleSubmit = (e) => {
@@ -42,11 +45,38 @@ const SignUp = () => {
     }
   };
 
-  const handleMechanicSignUp = () => {
+  const handleMechanicSignUp = async () => {
     // Logic to handle mechanic sign-up with the form data (e.g., save to Firestore or Realtime Database)
-    console.log('Mechanic signed up:', { name, email, phone, address, specialty, paymentProof });
-    alert('Mechanic sign-up successful');
-    window.location.reload();
+    // if (!paymentProof) {
+    //   alert("Please upload payment proof!");
+    //   return;
+    // }
+
+    try {
+
+      const mechanicData = {
+        name,
+        email,
+        phone,
+        address,
+        specialty,
+        role: "mechanic",
+        status: "pending", // Mechanic request needs admin approval
+        password,
+        // paymentProof: paymentProof.name, // Ideally, store this in Firebase Storage
+      };
+
+      await axios.post(firebaseURL, mechanicData, {
+        headers: { "Content-Type": "application/json" },
+      });
+
+      alert("Your request has been sent to the admin for approval!");
+
+      window.location.reload();
+    } catch (error) {
+      console.error("Error signing up:", error);
+      alert(`Sign-Up failed. Error: ${error.message}`);
+    }
 
   };
 
@@ -92,12 +122,12 @@ const SignUp = () => {
                   <td><input type="text" value={name} onChange={(e) => setName(e.target.value)} required /></td>
                 </tr>
 
-               
+
                 <tr>
                   <td><label>Email:</label></td>
                   <td><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></td>
                 </tr>
-                
+
                 <tr>
                   <td><label>Phone Number:</label></td>
                   <td><input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} required /></td>
@@ -148,10 +178,10 @@ const SignUp = () => {
                   <td><label>Specialty:</label></td>
                   <td><input type="text" value={specialty} onChange={(e) => setSpecialty(e.target.value)} required /></td>
                 </tr>
-                <tr>
+                {/* <tr>
                   <td><label>Payment Proof:</label></td>
                   <td><input type="file" onChange={(e) => setPaymentProof(e.target.files[0])} required /></td>
-                </tr>
+                </tr> */}
                 <tr>
                   <td><label>Password:</label></td>
                   <td><input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required /></td>

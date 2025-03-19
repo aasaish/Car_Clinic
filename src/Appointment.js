@@ -110,7 +110,7 @@ const Appointment = () => {
     <div className="appointment-page">
       <h1>Book Your Appointment</h1>
       <form onSubmit={handleSubmit} className="appointment-form">
-        <div>
+        <div className="labels">
           <label>Name:</label>
           <input
             type="text"
@@ -121,7 +121,7 @@ const Appointment = () => {
           />
         </div>
 
-        <div>
+        <div className="labels">
           <label>Email:</label>
           <input
             type="email"
@@ -133,7 +133,7 @@ const Appointment = () => {
         </div>
 
 
-        <div>
+        <div className="labels">
           <label>Mobile Number:</label>
           <input
             type="tel"
@@ -144,7 +144,7 @@ const Appointment = () => {
           />
         </div>
 
-        <div>
+        <div className="labels">
           <label>Address:</label>
           <textarea
             name="address"
@@ -154,7 +154,7 @@ const Appointment = () => {
           ></textarea>
         </div>
 
-        <div>
+        <div className="labels">
           <label>Query:</label>
           <textarea
             name="query"

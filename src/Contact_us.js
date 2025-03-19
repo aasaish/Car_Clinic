@@ -1,7 +1,7 @@
 // src/ContactUs.js
 import React, { useState } from "react";
-import { db } from "./firebase";
-import { collection, addDoc } from "firebase/firestore";
+// import { db } from "./firebase";
+// import { collection, addDoc } from "firebase/firestore";
 import './ContactUs.css';  // Ensure the CSS is correctly imported
 import axios from "axios";
 
@@ -16,7 +16,6 @@ const ContactUs = () => {
   const firebaseURL = "https://car-clinic-9cc74-default-rtdb.firebaseio.com/contact_us.json";
 
   const handleChange = async (e) => {
-
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
@@ -30,16 +29,16 @@ const ContactUs = () => {
       await axios.post(firebaseURL, formData, {
         headers: { "Content-Type": "application/json" }
       });
-          } catch (error) {
+    } catch (error) {
       console.error("Error adding item:", error);
     }
-      setFormData({ name: "", email: "", phone: "", message: "" });
+    setFormData({ name: "", email: "", phone: "", message: "" });
     alert("Form Submitted!")
-   
+
   };
 
   return (
-    <div className="contact-us-container"> 
+    <div className="contact-us-container">
       <h1>Contact Us</h1>
       <form onSubmit={handleSubmit} className="contact-form">
         <div className="form-group">

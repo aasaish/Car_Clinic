@@ -5,6 +5,9 @@
   }
   
   .rating-form {
+    display: flex;
+  flex-direction: column; /* Ensure label is above input */
+  align-items: flex-start;
     max-width: 800px;
     margin: 0 auto;
     padding: 20px;
@@ -14,7 +17,7 @@
   }
   
   .rating-form label {
-    font-weight: bold;
+    /* font-weight: bold; */
     color: white;
     display: block;
     margin-top: 10px;
@@ -23,7 +26,7 @@
   .rating-form input,
   .rating-form select,
   .rating-form textarea {
-    width: 100%;
+    width: 97%;
     padding: 10px;
     margin-top: 5px;
     border: 1px solid grey;
@@ -31,6 +34,9 @@
     font-size: 1rem;
     background-color: #222;
     color: hsl(39, 70%, 25%);
+  }
+  .rating-form select{
+    width: 99.5%;
   }
   
   .rating-form input:focus,
