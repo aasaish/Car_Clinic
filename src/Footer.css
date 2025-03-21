@@ -1,37 +1,75 @@
-/* src/Footer.css */
+   /* Footer Styling */
 .footer {
-    background-color: #333; /* Dark grey background */
-    color: white; /* White text */
-    padding: 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
+  background-color: #111; /* Dark background */
+  color: hsl(39, 70%, 25%); /* Light golden text */
+  padding: 10px 10px;
+  display: flex;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  border-top: 2px solid hsl(39, 70%, 25%);
+}
+
+.footer-section {
+  flex: 1;
+  min-width: 200px;
+  /* margin: 5px; */
+}
+
+.footer h2 {
+  font-size: 18px;
+  margin-bottom: 10px;
+  border-bottom: 2px solid hsl(39, 70%, 25%);
+  display: inline-block;
+  padding-bottom: 5px;
+}
+.footer a {
+  text-decoration: none;
+  color: hsl(39, 70%, 25%);
+}
+
+.footer p {
+  margin: 5px 0;
+  cursor: pointer;
+  transition: color 0.3s ease;
+  text-decoration: none;
+}
+
+.footer p:hover {
+  color: white;
+}
+
+.footer a:hover {
+  color: white;
+}
+
+/* Social Media Icons */
+.social-icons {
+  width: 50%;
+  display: flex;
+  gap: 15px;
+  margin-top: 10px;
+  margin-left: 33%;
+}
+
+.social-icons a {
+  color: hsl(39, 70%, 25%);
+  font-size: 24px;
+  transition: color 0.3s ease;
+}
+
+.social-icons a:hover {
+  color: white;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .footer {
+    flex-direction: column;
+    text-align: center;
+    align-items: center;
   }
-  
-  .footer > div {
-    flex: 1; /* Equal space for each column */
-    padding: 0 15px;
+  .social-icons {
+    width: 100%;
+    margin-left: 10%;
   }
-  
-  .footer h1 {
-    font-size: 18px;
-    margin-bottom: 10px;
-    border-bottom: 2px solid white; /* Underline */
-    display: inline-block;
-    padding-bottom: 5px;
-  }
-  
-  .footer p {
-    margin: 5px 0;
-  }
-  
-  .footer a {
-    color: lightblue; /* Optional link color */
-    text-decoration: none;
-    transition: color 0.3s ease;
-  }
-  
-  .footer a:hover {
-    color: white;
-  }
-  
+}

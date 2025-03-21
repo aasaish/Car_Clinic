@@ -2,27 +2,42 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Login.css';
 import { signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword } from 'firebase/auth';
+import CustomAlert from './CustomAlert';
 import { auth } from './firebase';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('');
+  const [alert, setAlert] = useState({
+    show: false,
+    message: '',
+    onConfirm: () => { },
+  });
   const navigate = useNavigate();
+
+  const showAlert = (message, onConfirm) => {
+    setAlert({ show: true, message, onConfirm });
+  };
+
+  // Function to close alert
+  const closeAlert = () => {
+    setAlert({ show: false, message: '', onConfirm: () => { } });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     // Ensure role is selected before attempting login
     if (!role) {
-      alert('Please select a role (User or Mechanic) before logging in.');
+      showAlert('Please select a role (User or Mechanic) before logging in.');
       return;
     }
 
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email.toLowerCase(), password);
       console.log(`${role} logged in with Email: ${email}`);
-      alert(`${role.charAt(0).toUpperCase() + role.slice(1)} logged in successfully`);
+      showAlert(`${role.charAt(0).toUpperCase() + role.slice(1)} logged in successfully`);
 
       // Role-based redirection
       if (role === 'user') {
@@ -40,16 +55,16 @@ const Login = () => {
   const handleAuthError = (error) => {
     switch (error.code) {
       case 'auth/user-not-found':
-        alert('No account found with this email. Please sign up first.');
+        showAlert('No account found with this email. Please sign up first.');
         break;
       case 'auth/wrong-password':
-        alert('Incorrect password. Please try again.');
+        showAlert('Incorrect password. Please try again.');
         break;
       case 'auth/invalid-email':
-        alert('Invalid email format. Please check your email.');
+        showAlert('Invalid email format. Please check your email.');
         break;
       default:
-        alert('Login failed. Please check your credentials.');
+        showAlert('Login failed. Please check your credentials.');
         break;
     }
   };
@@ -60,7 +75,7 @@ const Login = () => {
 
   const handleGoogleSignIn = async () => {
     if (role !== 'user') {
-      alert('Only users can log in with Google');
+      showAlert('Only users can log in with Google');
       return;
     }
 
@@ -68,11 +83,11 @@ const Login = () => {
     try {
       const result = await signInWithPopup(auth, provider);
       console.log('Google Sign-In Successful:', result.user);
-      alert(`Logged in with Google as: ${result.user.email}`);
+      showAlert(`Logged in with Google as: ${result.user.email}`);
       navigate('/');
     } catch (error) {
       console.error('Error signing in with Google:', error);
-      alert('Google Sign-In failed. Please try again.');
+      showAlert('Google Sign-In failed. Please try again.');
     }
   };
 
@@ -121,7 +136,7 @@ const Login = () => {
           />
         </div>
 
-        
+
 
         {role === 'user' && (
           <div className="form-group">
@@ -137,6 +152,19 @@ const Login = () => {
           </button>
         </div>
       </form>
+      {alert.show && (
+        <CustomAlert
+          message={alert.message}
+          onConfirm={() => {
+            if (typeof alert.onConfirm === "function") {
+              alert.onConfirm(); // Execute the stored function
+            }
+            closeAlert(); // Close alert after confirmation
+          }}
+          onCancel={closeAlert}
+          buttonLabel="OK"
+        />
+      )}
     </div>
   );
 };

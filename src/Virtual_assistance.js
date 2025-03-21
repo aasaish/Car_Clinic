@@ -3,7 +3,7 @@ import './VirtualAssistance.css';
 import '@chatscope/chat-ui-kit-styles/dist/default/styles.min.css';
 import { MainContainer, ChatContainer, MessageList, Message, MessageInput, TypingIndicator } from '@chatscope/chat-ui-kit-react';
 
-const API_KEY = "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";
+const API_KEY = "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";
 const systemMessage = { "role": "system", "content": "You are an expert automotive repair assistant. A client will bring their car with an issue and explain the problem. Ask relevant questions like the car's make, model, how long the issue has been occurring, and when the last maintenance was done. Then, explain the possible reasons for the problem and suggest troubleshooting steps. You should only play the of automotive repair assistant. Dont talk about other useless stuff" };
 
 const VirtualAssistance = () => {

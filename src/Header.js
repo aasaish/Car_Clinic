@@ -4,13 +4,16 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Header.css'; // Import CSS for the header styling
 import { signOut } from 'firebase/auth';
+import CustomAlert from './CustomAlert';
 import { auth } from './firebase'; // Ensure db is imported
-import { getDatabase, ref, get} from "firebase/database";
+import { getDatabase, ref, get } from "firebase/database";
 
 const Header = ({ user, setUser }) => {
   const navigate = useNavigate();
   const [admin, setAdmin] = useState(false);
   const [isMechanic, setIsMechanic] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+
 
   useEffect(() => {
     if (!user?.uid) {
@@ -26,20 +29,20 @@ const Header = ({ user, setUser }) => {
 
   const checkIfMechanic = async (uid) => {
     try {
-  
+
       if (!uid) {
         setIsMechanic(false);
         return;
       }
-  
+
       const db = getDatabase(); // Get database instance
       const dbRef = ref(db, "approvedMechanics/" + uid); // Reference to the mechanic's data
-  
+
       const snapshot = await get(dbRef); // Fetch data
-  
+
       if (snapshot.exists()) {
         const userData = snapshot.val();
-  
+
         // Check if the role is "mechanic"
         setIsMechanic(userData.role === "mechanic");
       } else {
@@ -51,13 +54,22 @@ const Header = ({ user, setUser }) => {
   };
 
   const handleLogout = async () => {
+    setShowConfirmation(true);
+  }
+
+  const handleConfirmLogout = async () => {
     try {
       await signOut(auth);
       setUser(null); // Update global state
       navigate("/"); // Redirect after logout
+      setShowConfirmation(false);
     } catch (error) {
       console.error("Error logging out:", error.message);
     }
+  };
+
+  const handleCancelLogout = () => {
+    setShowConfirmation(false);
   };
 
   return (
@@ -115,7 +127,16 @@ const Header = ({ user, setUser }) => {
 
 
       </div>
+      {showConfirmation && (
+        <CustomAlert
+          message="Are you sure you want to Logout?"
+          onConfirm={handleConfirmLogout}
+          onCancel={handleCancelLogout}
+          buttonLabel={"Confirm"}
+        />
+      )}
     </header>
+
   );
 };
 

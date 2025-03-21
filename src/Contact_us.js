@@ -3,6 +3,7 @@ import React, { useState } from "react";
 // import { db } from "./firebase";
 // import { collection, addDoc } from "firebase/firestore";
 import './ContactUs.css';  // Ensure the CSS is correctly imported
+import CustomAlert from './CustomAlert';
 import axios from "axios";
 
 
@@ -13,6 +14,8 @@ const ContactUs = () => {
     phone: "",
     message: "",
   });
+  const [showConfirmation, setShowConfirmation] = useState(false);
+
   const firebaseURL = "https://car-clinic-9cc74-default-rtdb.firebaseio.com/contact_us.json";
 
   const handleChange = async (e) => {
@@ -33,8 +36,11 @@ const ContactUs = () => {
       console.error("Error adding item:", error);
     }
     setFormData({ name: "", email: "", phone: "", message: "" });
-    alert("Form Submitted!")
+    setShowConfirmation(true);
+  };
 
+  const handleAlert = () => {
+    setShowConfirmation(false);
   };
 
   return (
@@ -82,6 +88,14 @@ const ContactUs = () => {
         </div>
         <button type="submit" className="submit-btn">Submit</button> {/* Apply styling here */}
       </form>
+      {showConfirmation && (
+        <CustomAlert
+          message="Form Submitted!"
+          onConfirm={handleAlert}
+          onCancel={handleAlert}
+          buttonLabel={"OK"}
+        />
+      )}
     </div>
   );
 };

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import CustomAlert from './CustomAlert';
 import './Rating.css';
 
 const Rating = () => {
@@ -7,6 +8,12 @@ const Rating = () => {
     mechanicName: '',
     rating: '',
     comments: '',
+  });
+
+  const [alert, setAlert] = useState({
+    show: false,
+    message: '',
+    onConfirm: () => { },
   });
 
   const [mechanics, setMechanics] = useState([]); // Store approved mechanics
@@ -38,12 +45,21 @@ const Rating = () => {
     });
   };
 
+  const showAlert = (message, onConfirm) => {
+    setAlert({ show: true, message, onConfirm });
+  };
+
+  // Function to close alert
+  const closeAlert = () => {
+    setAlert({ show: false, message: '', onConfirm: () => { } });
+  };
+
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!formData.mechanicName || !formData.rating) {
-      alert("Please fill in all required fields.");
+      showAlert("Please fill in all required fields.");
       return;
     }
 
@@ -52,7 +68,7 @@ const Rating = () => {
         headers: { 'Content-Type': 'application/json' },
       });
 
-      alert("Your rating has been submitted successfully!");
+      showAlert("Your rating has been submitted successfully!");
 
       // Reset the form
       setFormData({
@@ -63,7 +79,7 @@ const Rating = () => {
 
     } catch (error) {
       console.error("Error submitting rating:", error);
-      alert("Failed to submit rating. Please try again.");
+      showAlert("Failed to submit rating. Please try again.");
     }
   };
 
@@ -114,6 +130,19 @@ const Rating = () => {
 
         <button type="submit">Submit Rating</button>
       </form>
+      {alert.show && (
+        <CustomAlert
+          message={alert.message}
+          onConfirm={() => {
+            if (typeof alert.onConfirm === "function") {
+              alert.onConfirm(); // Execute the stored function
+            }
+            closeAlert(); // Close alert after confirmation
+          }}
+          onCancel={closeAlert}
+          buttonLabel="OK"
+        />
+      )}
     </div>
   );
 };

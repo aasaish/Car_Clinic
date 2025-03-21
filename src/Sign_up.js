@@ -1,8 +1,9 @@
 // SignUp.js
 import React, { useState } from 'react';
 import './Signup.css';
-import { signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword } from 'firebase/auth';
+import { signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { auth } from './firebase';
+import CustomAlert from './CustomAlert';
 import axios from 'axios';
 
 const SignUp = () => {
@@ -14,15 +15,30 @@ const SignUp = () => {
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [specialty, setSpecialty] = useState('');
+  const [experience, setExperience] = useState('');
   // const [paymentProof, setPaymentProof] = useState(null);
+  const [alert, setAlert] = useState({
+    show: false,
+    message: '',
+    onConfirm: () => { },
+  });
 
   const firebaseURL = "https://car-clinic-9cc74-default-rtdb.firebaseio.com/mechanics.json"; // Firebase Database URL
+
+  const showAlert = (message, onConfirm) => {
+    setAlert({ show: true, message, onConfirm });
+  };
+
+  // Function to close alert
+  const closeAlert = () => {
+    setAlert({ show: false, message: '', onConfirm: () => { } });
+  };
 
   // Handle form submit
   const handleSubmit = (e) => {
     e.preventDefault();
     if (password !== confirmPassword) {
-      alert('Passwords do not match!');
+      showAlert('Passwords do not match!');
       return;
     }
     if (userType === 'user') {
@@ -36,21 +52,30 @@ const SignUp = () => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       console.log('User signed up:', userCredential.user);
-      alert(`Signed up as user: ${userCredential.user.email}`);
-      window.location.reload();
+      showAlert(`Signed up as user: ${userCredential.user.email}`);
+      const user = userCredential.user;
+
+      // Set the display name
+      await updateProfile(user, {
+        displayName: name
+      });
+
+      console.log("User registered:", user);
+      console.log("User name:", user.displayName);
+      // window.location.reload();
 
     } catch (error) {
       console.error('Error signing up:', error);
-      alert(`Sign-Up failed. Error: ${error.message}`);
+      showAlert(`Sign-Up failed. Error: ${error.message}`);
     }
   };
 
   const handleMechanicSignUp = async () => {
     // Logic to handle mechanic sign-up with the form data (e.g., save to Firestore or Realtime Database)
     // if (!paymentProof) {
-    //   alert("Please upload payment proof!");
+    //   showAlert("Please upload payment proof!");
     //   return;
-    // }
+    // }showAlert
 
     try {
 
@@ -60,6 +85,7 @@ const SignUp = () => {
         phone,
         address,
         specialty,
+        experience,
         role: "mechanic",
         status: "pending", // Mechanic request needs admin approval
         password,
@@ -70,12 +96,12 @@ const SignUp = () => {
         headers: { "Content-Type": "application/json" },
       });
 
-      alert("Your request has been sent to the admin for approval!");
+      showAlert("Your request has been sent to the admin for approval!");
 
       window.location.reload();
     } catch (error) {
       console.error("Error signing up:", error);
-      alert(`Sign-Up failed. Error: ${error.message}`);
+      showAlert(`Sign-Up failed. Error: ${error.message}`);
     }
 
   };
@@ -85,10 +111,10 @@ const SignUp = () => {
     try {
       const result = await signInWithPopup(auth, provider);
       console.log('Google Sign-Up Successful:', result.user);
-      alert(`Signed up with Google as: ${result.user.email}`);
+      showAlert(`Signed up with Google as: ${result.user.email}`);
     } catch (error) {
       console.error('Error signing up with Google:', error);
-      alert('Google Sign-Up failed. Please try again.');
+      showAlert('Google Sign-Up failed. Please try again.');
     }
   };
 
@@ -178,6 +204,10 @@ const SignUp = () => {
                   <td><label>Specialty:</label></td>
                   <td><input type="text" value={specialty} onChange={(e) => setSpecialty(e.target.value)} required /></td>
                 </tr>
+                <tr>
+                  <td><label>Experience:</label></td>
+                  <td><input type="text" value={experience} onChange={(e) => setExperience(e.target.value)} required /></td>
+                </tr>
                 {/* <tr>
                   <td><label>Payment Proof:</label></td>
                   <td><input type="file" onChange={(e) => setPaymentProof(e.target.files[0])} required /></td>
@@ -196,6 +226,19 @@ const SignUp = () => {
             <button type="submit">Submit</button>
           </form>
         </div>
+      )}
+      {alert.show && (
+        <CustomAlert
+          message={alert.message}
+          onConfirm={() => {
+            if (typeof alert.onConfirm === "function") {
+              alert.onConfirm(); // Execute the stored function
+            }
+            closeAlert(); // Close alert after confirmation
+          }}
+          onCancel={closeAlert}
+          buttonLabel="OK"
+        />
       )}
     </div>
   );

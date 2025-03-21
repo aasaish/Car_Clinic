@@ -21,16 +21,6 @@ function App() {
 
   const [user, setUser] = useState(null);
 
-// useEffect( ()=> {
-//   onAuthStateChanged(auth, (user) => {
-//     if (user){
-//       console.log("hi", user);
-//     }else{
-//       console.log("you are log out");
-//     }
-//   });
-// },[])
-
 useEffect(() => {
   const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
     setUser(currentUser); // Store user globally

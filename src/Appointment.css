@@ -40,6 +40,20 @@ h1 {
   margin-bottom: 15px;
 }
 
+.choices {
+  display: flex;
+  flex-direction: row; /* Stack label above input */
+  gap: 10%;
+  margin-bottom: 15px;
+}
+
+.options {
+  display: flex;
+  flex-direction: row;
+  width: 70%;
+  justify-content: space-around;
+}
+
 .appointment-form label {
   font-weight: bold;
 }
@@ -47,7 +61,8 @@ h1 {
 .appointment-form input[type="text"],
 .appointment-form input[type="email"],
 .appointment-form input[type="tel"],
-.appointment-form textarea {
+.appointment-form textarea,
+.appointment-form select{
   width: 100%;
   padding: 10px;
   margin-top: 5px;
@@ -57,9 +72,13 @@ h1 {
   background-color: #222; /* Dark input background */
   color: hsl(39, 70%, 25%); /* Golden text */
 }
+.appointment-form select{
+  width: 102%;
+}
 
 .appointment-form input:focus,
-.appointment-form textarea:focus {
+.appointment-form textarea:focus,
+.appointment-form select:focus {
   outline: none;
   border-color: hsl(39, 70%, 25%); /* Golden focus border */
   box-shadow: 0 0 5px rgba(255, 215, 0, 0.5); /* Golden glow on focus */
@@ -129,6 +148,13 @@ h1 {
   .appointment-form input[type="tel"],
   .appointment-form textarea {
     padding: 10px;
+  }
+
+  .choices{
+    flex-direction: column;
+  }
+  .options{
+    width: 100%;
   }
 
   .appointment-form button {
