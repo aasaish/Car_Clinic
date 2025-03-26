@@ -150,7 +150,9 @@ const AdminPortal = () => {
         date: "",
         ratings: "",
         appointments: "",
+        calendarLink : mechanic.calendarLink,
         address: mechanic.address,
+        calendarId: mechanic.calendarId
       });
 
       // Remove from 'mechanics' collection after approval

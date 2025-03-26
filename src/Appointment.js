@@ -19,9 +19,11 @@ const Appointment = () => {
     mechanic: "",
     visitPreference: "",
     selectedServices: "",
+    calendarLink: "",
   });
   const [isAuthenticated, setIsAuthenticated] = useState(false); // State to track authentication status
   const [mechanics, setMechanics] = useState([]);
+  const [filteredMechanics, setFilteredMechanics] = useState([]); 
   const [alert, setAlert] = useState({
     show: false,
     message: '',
@@ -55,9 +57,21 @@ const Appointment = () => {
   }, []);
 
   useEffect(() => {
+    if (formData.selectedServices) {
+      const filtered = mechanics.filter(
+        (mechanic) => mechanic.specialty === formData.selectedServices
+      );
+      setFilteredMechanics(filtered);
+    } else {
+      setFilteredMechanics([]); // Reset if no service is selected
+    }
+  }, [formData.selectedServices, mechanics]);
+
+  useEffect(() => {
     const auth = getAuth();
     onAuthStateChanged(auth, (user) => {
       if (user) {
+        console.log("User Authenticated ,", user);
         setIsAuthenticated(true);
       } else {
         setIsAuthenticated(false);
@@ -67,10 +81,26 @@ const Appointment = () => {
   }, [navigate]);
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    const { name, value } = e.target;
+    
+    // If the selected field is 'mechanic', also update the calendar link
+    if (name === "mechanic") {
+      const selectedMechanic = mechanics.find((m) => m.name === value);
+      console.log("Selected Mechanic:", selectedMechanic); // Debugging
+      console.log("Calendar Link:", selectedMechanic?.calendarLink);
+      setFormData({
+        ...formData,
+        [name]: value,
+        calendarLink: selectedMechanic?.calendarLink || "", // Store mechanic's calendar link
+        mechanicName: selectedMechanic?.name || "",
+        calendarId: selectedMechanic?.calendarId
+      });
+    } else {
+      setFormData({
+        ...formData,
+        [name]: value,
+      });
+    }
   };
 
   const handleCheckboxChange = (e, stateUpdater) => {
@@ -91,10 +121,10 @@ const Appointment = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     const updatedFormData = {
       ...formData,
       visitPreference: visitPreference.join(", "),
-      // selectedServices: selectedOption.join(", "),
     };
 
     try {
@@ -102,20 +132,13 @@ const Appointment = () => {
         headers: { "Content-Type": "application/json" },
       });
 
-      if (visitPreference.includes("I Will Visit") && selectedOption.length > 0) {
-        const selectedCalendarIframe = selectedOption
-          .map((option) => calendarURLs[option])
-          .filter(Boolean)
-          .join("");
-
-        if (selectedCalendarIframe) {
-          setShowCalendar(true);
-          setCalendarUrl(selectedCalendarIframe);
-        } else {
-          showAlert("No valid calendar URL found for the selected services.");
-        }
-      } else if (visitPreference.includes("Visit Me") && selectedOption.length > 0) {
-        showAlert("Your appointment request has been submitted. Our team will contact you shortly!");
+      if (visitPreference.includes("I Will Visit") && formData.calendarLink) {
+        setCalendarUrl(formData.calendarLink); // Show selected mechanic's calendar
+        setShowCalendar(true);
+      } else if (visitPreference.includes("Visit Me")) {
+        alert(
+          "Your appointment request has been submitted. Our team will contact you shortly!"
+        );
         setShowCalendar(false);
       }
 
@@ -128,19 +151,21 @@ const Appointment = () => {
         mechanic: "",
         visitPreference: "",
         selectedServices: "",
+        calendarLink: "",
       });
       setVisitPreference([]);
-      // setSelectedOption([]);
     } catch (error) {
       console.error("Error adding appointment:", error);
     }
   };
+
 
   if (!isAuthenticated) {
     return <div>Please log in to access the appointment page.</div>; // Show message if not authenticated
   }
 
   return (
+    <>
     <div className="appointment-page">
       <h1>Book Your Appointment</h1>
       <form onSubmit={handleSubmit} className="appointment-form">
@@ -199,24 +224,6 @@ const Appointment = () => {
         </div>
 
         <div className="labels">
-          <label>Select Mechanic:</label>
-          <select
-            id="mechanic"
-            name="mechanic"
-            value={formData.mechanic}
-            onChange={handleChange}
-            required
-          >
-            <option value="">Select a mechanic</option>
-            {mechanics.map((mechanic, index) => (
-              <option key={index} value={mechanic.name}>
-                {mechanic.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="labels">
           <label>Select a Service</label>
           <select
             id="selectedServices"
@@ -232,6 +239,27 @@ const Appointment = () => {
             <option value="Painter">Painter</option>
           </select>
         </div>
+
+        {/* Select Mechanic (Disabled if No Service is Selected) */}
+        <div className="labels">
+          <label>Select Mechanic:</label>
+          <select
+            id="mechanic"
+            name="mechanic"
+            value={formData.mechanic}
+            onChange={handleChange}
+            required
+            disabled={!formData.selectedServices || filteredMechanics.length === 0}
+          >
+            <option value="">Select a mechanic</option>
+            {filteredMechanics.map((mechanic, index) => (
+              <option key={index} value={mechanic.name}>
+                {mechanic.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <div className="choices">
           <div>
             <label>Visit Preference:</label></div>
@@ -275,14 +303,13 @@ const Appointment = () => {
       </form>
 
       {showCalendar && (
-        <div className="calendar-container">
-          <div
-            className="calendar"
-            dangerouslySetInnerHTML={{
-              __html: calendarUrl,
-            }}
-          />
-        </div>
+        <div>
+        <h3>Book Your Appointment</h3>
+        <iframe 
+          src={calendarUrl} 
+          style={{ width: "100%", height: "900px", border: "none", overflow: "hidden" }} 
+        ></iframe>
+      </div>
       )}
       {alert.show && (
         <CustomAlert
@@ -298,6 +325,7 @@ const Appointment = () => {
         />
       )}
     </div>
+    </>
   );
 };
 
