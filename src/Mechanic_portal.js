@@ -99,6 +99,7 @@ const MechanicPortal = () => {
   
           // If GHL API response is OK, update Firebase
           if (ghlResponse.status === 200) {
+            //emails sent
             // ✅ Update `appointments` collection correctly
             const allAppointmentsResponse = await axios.get(`${firebaseDB}/appointments.json`);
             const allAppointments = allAppointmentsResponse.data;

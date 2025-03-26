@@ -82,40 +82,63 @@ const Header = ({ user, setUser }) => {
         />
       </div>
       <div className="header-right">
-        <button className="header-button" onClick={() => navigate('/')}>
-          Home
-        </button>
-        <button className="header-button" onClick={() => navigate('/About_us')}>
-          About
-        </button>
-        <button className="header-button" onClick={() => navigate('/Virtual_assistance')}>
-          Virtual Assistance
-        </button>
-        {admin ?
-          <button className="header-button" onClick={() => navigate('/Admin_portal')}>
-            Admin Portal
-          </button>
-          : null}
 
-        {isMechanic && (
-          <button className="header-button" onClick={() => navigate('/Mechanic_portal')}>
-            Mechanic_portal
-          </button>
-        )}
-
-        <button className="header-button" onClick={() => navigate('/Contact_us')}>
-          Contact-Us
-        </button>
-        <button className="header-button" onClick={() => navigate('/Rating')}>
-          Rating
-        </button>
-
-        {user ? (
-          <button className="header-button logout" onClick={handleLogout}>
-            Log Out
-          </button>
+        {admin ? (
+          <>
+            <button className="header-button" onClick={() => navigate('/Admin_portal')}>
+              Admin Panel
+            </button>
+            <button className="header-button logout" onClick={handleLogout}>
+              Log Out
+            </button>
+          </>
+        ) : isMechanic ? (
+          <>
+            <button className="header-button" onClick={() => navigate('/Mechanic_portal')}>
+              Mechanic Panel
+            </button>
+            <button className="header-button logout" onClick={handleLogout}>
+              Log Out
+            </button>
+          </>
+        ) : user ? (
+          <>
+            <button className="header-button" onClick={() => navigate('/')}>
+              Home
+            </button>
+            <button className="header-button" onClick={() => navigate('/About_us')}>
+              About
+            </button>
+            <button className="header-button" onClick={() => navigate('/Virtual_assistance')}>
+              Virtual Assistance
+            </button>
+            <button className="header-button" onClick={() => navigate('/Contact_us')}>
+              Contact Us
+            </button>
+            <button className="header-button" onClick={() => navigate('/Rating')}>
+              Rating
+            </button>
+            <button className="header-button logout" onClick={handleLogout}>
+              Log Out
+            </button>
+          </>
         ) : (
           <>
+            <button className="header-button" onClick={() => navigate('/')}>
+              Home
+            </button>
+            <button className="header-button" onClick={() => navigate('/About_us')}>
+              About
+            </button>
+            <button className="header-button" onClick={() => navigate('/Virtual_assistance')}>
+              Virtual Assistance
+            </button>
+            <button className="header-button" onClick={() => navigate('/Contact_us')}>
+              Contact Us
+            </button>
+            <button className="header-button" onClick={() => navigate('/Rating')}>
+              Rating
+            </button>
             <button className="header-button" onClick={() => navigate('/Sign_up')}>
               Sign Up
             </button>

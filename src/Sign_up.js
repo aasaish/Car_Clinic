@@ -243,6 +243,9 @@ const SignUp = () => {
         // paymentProof: paymentProof.name, // Ideally, store this in Firebase Storage
       };
 
+      console.log(mechanicData);
+      
+
       await axios.post(firebaseURL, mechanicData, {
         headers: { "Content-Type": "application/json" },
       });

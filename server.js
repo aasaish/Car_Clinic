@@ -35,6 +35,17 @@ app.get("/getUsers", async (req, res) => {
   }
 });
 
+app.delete("/deleteUser/:uid", async (req, res) => {
+  const { uid } = req.params;
+  try {
+    await admin.auth().deleteUser(uid); // Delete user from Firebase Authentication
+    res.status(200).json({ message: "User deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting user:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 const firebaseDB = "https://car-clinic-9cc74-default-rtdb.firebaseio.com"; // Firebase base URL
 const firebaseURL = "https://car-clinic-9cc74-default-rtdb.firebaseio.com/appointments.json";
 
@@ -152,7 +163,7 @@ app.post("/webhook", async (req, res) => {
     } else {
       console.log("No appointment found without startTime for this email.");
     }
-
+//emails sent
     res.status(200).json({
       message: "Appointment processed successfully",
       data: newAppointmentData,
@@ -166,7 +177,7 @@ app.post("/webhook", async (req, res) => {
 });
 
 
-const PORT = 6000;
+const PORT = 5000;
 app.listen(PORT, async () => {
   console.log(`Server is running on port ${PORT}`);
   try {

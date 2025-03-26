@@ -32,6 +32,7 @@ const AdminPortal = () => {
     try {
       const response = await axios.get("http://localhost:5000/getUsers"); // Backend API
       setUsersData(response.data);
+      
     } catch (error) {
       console.error("Error fetching users:", error);
     }
@@ -127,6 +128,18 @@ const AdminPortal = () => {
     }
   };
 
+  const handleRemoveUser = async (uid) => {
+    try {
+      await axios.delete(`http://localhost:5000/deleteUser/${uid}`);
+      showAlert("User removed successfully.");
+      fetchUsersData(); // Refresh user list
+    } catch (error) {
+      console.error("Error removing user:", error);
+      showAlert("Failed to remove user.");
+    }
+  };
+
+
   const handleApprove = async (mechanic) => {
     try {
       // Save admin's email before approving the mechanic
@@ -192,7 +205,7 @@ const AdminPortal = () => {
       console.error('Error removing mechanic:', error);
     }
   };
-  
+
 
 
   return (
@@ -211,7 +224,8 @@ const AdminPortal = () => {
               <tr>
                 <th>Name</th>
                 <th>Email</th>
-                <th>Phone Number</th>
+                {/* <th>Phone Number</th> */}
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -219,7 +233,10 @@ const AdminPortal = () => {
                 <tr key={index}>
                   <td>{user.name}</td>
                   <td>{user.email}</td>
-                  <td>{user.phone}</td>
+                  {/* <td>{user.phone}</td> */}
+                  <td>
+                    <button className="reject-btn" onClick={() => handleRemoveUser(user.uid)}>Remove</button>
+                  </td>
                 </tr>
               ))}
             </tbody>

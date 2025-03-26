@@ -83,7 +83,9 @@ h1, h2 {
 .signup-form input[type="tel"],
 .signup-form input[type="number"],
 .signup-form input[type="password"],
-.signup-form input[type="file"] {
+.signup-form input[type="file"],
+.signup-form select
+{
   width: 100%;
   padding: 10px;
   margin-top: 5px;
@@ -94,6 +96,10 @@ h1, h2 {
   color: hsl(39, 70%, 25%); /* Golden text */
 }
 
+.signup-form select
+{
+  width: 105%;
+}
 .signup-form input:focus {
   outline: none;
   border-color: hsl(39, 70%, 25%); /* Golden focus border */

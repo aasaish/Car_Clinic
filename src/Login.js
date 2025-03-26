@@ -40,7 +40,9 @@ const Login = () => {
       showAlert(`${role.charAt(0).toUpperCase() + role.slice(1)} logged in successfully`);
 
       // Role-based redirection
-      if (role === 'user') {
+      if (role === 'user' && email === 'admin@gmail.com') {
+        navigate('/Admin_portal');
+      } else if (role === 'user') {
         navigate('/');
       } else if (role === 'mechanic') {
         navigate('/mechanic_portal');
