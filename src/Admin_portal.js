@@ -32,7 +32,7 @@ const AdminPortal = () => {
     try {
       const response = await axios.get("http://localhost:5000/getUsers"); // Backend API
       setUsersData(response.data);
-      
+
     } catch (error) {
       console.error("Error fetching users:", error);
     }
@@ -44,6 +44,7 @@ const AdminPortal = () => {
     try {
       // Fetch pending mechanics
       const mechanicsResponse = await axios.get(mechanicsFirebaseURL);
+      console.log(mechanicsResponse.data);
       const mechanicsArray = mechanicsResponse.data
         ? Object.entries(mechanicsResponse.data).map(([id, value]) => ({
           id,
@@ -163,7 +164,7 @@ const AdminPortal = () => {
         date: "",
         ratings: "",
         appointments: "",
-        calendarLink : mechanic.calendarLink,
+        calendarLink: mechanic.calendarLink,
         address: mechanic.address,
         calendarId: mechanic.calendarId
       });
@@ -249,7 +250,10 @@ const AdminPortal = () => {
               <tr>
                 <th>Name</th>
                 <th>Email</th>
+                <th>Phone Number</th>
                 <th>Experience</th>
+                <th>Field</th>
+                <th>Payment Proof</th>
                 <th>Address</th>
                 <th>Actions</th>
               </tr>
@@ -259,13 +263,20 @@ const AdminPortal = () => {
                 <tr key={index}>
                   <td>{mechanic.name}</td>
                   <td>{mechanic.email}</td>
+                  <td>{mechanic.phone}</td>
                   <td>{mechanic.experience}</td>
+                  <td>{mechanic.specialty}</td>
+                  <td>
+                    <a href={mechanic.paymentProof} target="_blank" rel="noopener noreferrer">
+                      <button className="approve-btn">Click Here</button>
+                    </a>
+                  </td>
                   <td>{mechanic.address}</td>
                   <td>
                     {mechanic.status === 'pending' ? (
                       <>
                         <button className="approve-btn" onClick={() => handleApprove(mechanic)}>Approve</button>
-                        <button className="reject-btn" onClick={() => handleReject(mechanic.id)}>Reject</button>
+                        <button className="reject-btn" onClick={() => handleReject(mechanic.id)}>Remove</button>
                       </>
                     ) : (
                       <button className="reject-btn" onClick={() => handleRemove(mechanic.id)}>Remove</button>

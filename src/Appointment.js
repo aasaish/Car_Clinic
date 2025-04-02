@@ -19,6 +19,7 @@ const Appointment = () => {
     mechanic: "",
     visitPreference: "",
     selectedServices: "",
+    status: "pending",
     calendarLink: "",
   });
   const [isAuthenticated, setIsAuthenticated] = useState(false); // State to track authentication status
@@ -93,8 +94,8 @@ const Appointment = () => {
         [name]: value,
         calendarLink: selectedMechanic?.calendarLink || "", // Store mechanic's calendar link
         mechanicName: selectedMechanic?.name || "",
-        calendarId: selectedMechanic?.calendarId|| "",
-        mechanicEmail: selectedMechanic?.email|| ""
+        mechanicEmail: selectedMechanic?.email || "",
+        calendarId: selectedMechanic?.calendarId
       });
     } else {
       setFormData({
@@ -126,6 +127,7 @@ const Appointment = () => {
     const updatedFormData = {
       ...formData,
       visitPreference: visitPreference.join(", "),
+      mechanicEmail: formData.mechanicEmail,
     };
 
     try {
@@ -152,6 +154,8 @@ const Appointment = () => {
         mechanic: "",
         visitPreference: "",
         selectedServices: "",
+        mechanicEmail: "",
+        status: "pending",
         calendarLink: "",
       });
       setVisitPreference([]);

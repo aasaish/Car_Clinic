@@ -43,7 +43,7 @@ useEffect(() => {
             <Route path="/about_us" element={<AboutUs />} />
             <Route path="/virtual_assistance" element={<VirtualAssistance />} />
             <Route path="/admin_portal" element={<AdminPortal />} />
-            <Route path="/mechanic_portal" element={<MechanicPortal />} />
+            <Route path="/mechanic_portal" element={<MechanicPortal user={user} setUser={setUser} />} />
             <Route path="/rating" element={<Rating />} />
           </Routes>
         </div>

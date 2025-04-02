@@ -6,9 +6,10 @@ import { Button, Checkbox, Dialog, DialogTitle, DialogContent, DialogActions, Te
 import { getAuth, onAuthStateChanged } from "firebase/auth"; // Import Firebase Auth
 
 
-const MechanicPortal = () => {
+const MechanicPortal = ({ user, setUser }) => {
   // State to store appointments
-  const [appointments, setAppointments] = useState([]);
+  const [activeTable, setActiveTable] = useState('pending'); // Default table view is 'pending'
+  const [appointments, setAppointments] = useState({ pending: [], completed: [] });
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [userEmail, setUserEmail] = useState(null);
@@ -102,6 +103,7 @@ const MechanicPortal = () => {
     });
   }, []);
 
+
   const fetchMechanicCalendarId = async (email) => {
     try {
       const response = await axios.get(mechanicsURL);
@@ -128,18 +130,56 @@ const MechanicPortal = () => {
     try {
       const response = await axios.get(firebaseURL);
       if (response.data) {
-        console.log(response.data);
-        // Filter appointments where 'mechanicEmail' matches the signed-in user's email
-        const filteredAppointments = Object.values(response.data).filter(
-          (appointment) => appointment.mechanicEmail === email
+        // Convert Firebase object into an array while preserving the unique keys
+        const appointmentsArray = Object.entries(response.data).map(([id, data]) => ({
+          id, // Store Firebase ID for updating/deleting
+          ...data,
+        }));
+
+        // Filter appointments for the logged-in mechanic
+        const mechanicAppointments = appointmentsArray.filter(
+          (appointment) => appointment.mechanicEmail === user?.email
         );
-        console.log("mech email : ", filteredAppointments);
-        setAppointments(filteredAppointments);
+
+        // Separate into pending and completed
+        setAppointments({
+          pending: mechanicAppointments.filter(app => app.status === "pending"),
+          completed: mechanicAppointments.filter(app => app.status === "completed"),
+        });
       }
     } catch (error) {
       console.error("Error fetching appointments:", error);
     }
   };
+
+
+  const updateAppointmentStatus = async (appointmentId) => {
+    try {
+      const updateURL = `https://car-clinic-9cc74-default-rtdb.firebaseio.com/appointments/${appointmentId}.json`;
+
+      await axios.patch(updateURL, { status: "completed" }); // Correctly updating the status
+
+      // Refresh appointments after update
+      fetchAppointments();
+    } catch (error) {
+      console.error("Error updating appointment status:", error);
+    }
+  };
+
+  const deleteAppointment = async (appointmentId) => {
+    try {
+      const deleteURL = `https://car-clinic-9cc74-default-rtdb.firebaseio.com/appointments/${appointmentId}.json`;
+
+      await axios.delete(deleteURL); // Delete appointment from Firebase
+
+      // Refresh appointments after deletion
+      fetchAppointments();
+    } catch (error) {
+      console.error("Error deleting appointment:", error);
+    }
+  };
+
+
 
   const fetchCalendarAppointments = async () => {
     try {
@@ -165,176 +205,109 @@ const MechanicPortal = () => {
   };
 
   const moveAppointmentAfterOneHour = async (appointmentId, calendarId) => {
-    try {
-      const calendarResponse = await axios.get(`${firebaseDB}/calendarAppointments/${calendarId}.json`);
-      if (!calendarResponse.data || !calendarResponse.data.appointments) {
-        console.error(`No appointments found for calendarId: ${calendarId}`);
-        return;
-      }
+    // try {
+    //   const calendarResponse = await axios.get(`${firebaseDB}/calendarAppointments/${calendarId}.json`);
+    //   if (!calendarResponse.data || !calendarResponse.data.appointments) {
+    //     console.error(`No appointments found for calendarId: ${calendarId}`);
+    //     return;
+    //   }
 
-      let calendarAppointments = calendarResponse.data.appointments.filter(app => app !== null);
-      console.log("Filtered calendar data:", calendarAppointments);
+    //   let calendarAppointments = calendarResponse.data.appointments.filter(app => app !== null);
+    //   console.log("Filtered calendar data:", calendarAppointments);
 
-      let latestAppointment = calendarAppointments
-        .filter(app => app.appointmentId === appointmentId)
-        .reduce((latest, current) => {
-          return new Date(current.startTime) > new Date(latest.startTime) ? current : latest;
-        }, calendarAppointments[0]);
+    //   let latestAppointment = calendarAppointments
+    //     .filter(app => app.appointmentId === appointmentId)
+    //     .reduce((latest, current) => {
+    //       return new Date(current.startTime) > new Date(latest.startTime) ? current : latest;
+    //     }, calendarAppointments[0]);
 
-      if (!latestAppointment) {
-        console.error("Appointment not found in calendarAppointments.");
-        return;
-      }
+    //   if (!latestAppointment) {
+    //     console.error("Appointment not found in calendarAppointments.");
+    //     return;
+    //   }
 
-      let newStartTime = new Date(latestAppointment.startTime);
-      newStartTime.setHours(newStartTime.getHours() + 1);
-      const formattedNewStartTime = formatDateWithOffset(newStartTime, 5);
+    //   // Calculate the new startTime (+1 hour)
+    //   let newStartTime = new Date(targetAppointment.startTime);
+    //   newStartTime.setHours(newStartTime.getHours() + 1);
+    //   newStartTime = newStartTime.toISOString(); // Convert to string format
 
-      console.log("Latest appointment:", latestAppointment);
-      console.log("Formatted new start time:", formattedNewStartTime);
+    //   // Find all appointments that need to be moved
+    //   let appointmentsToUpdate = [];
+    //   for (let i = calendarAppointments.length - 1; i >= 0; i--) {
+    //     if (new Date(calendarAppointments[i].startTime) >= new Date(targetAppointment.startTime)) {
+    //       let updatedTime = new Date(calendarAppointments[i].startTime);
+    //       updatedTime.setHours(updatedTime.getHours() + 1);
+    //       appointmentsToUpdate.push({
+    //         appointmentId: calendarAppointments[i].appointmentId,
+    //         newStartTime: updatedTime.toISOString(),
+    //       });
+    //     }
+    //   }
 
-      let conflictingAppointment = calendarAppointments.find(
-        app => new Date(app.startTime).getTime() === newStartTime.getTime()
-      );
+    //   // ✅ Update GHL API for each affected appointment
+    //   for (let appointment of appointmentsToUpdate) {
+    //     try {
+    //       const ghlResponse = await axios.put(
+    //         `https://services.leadconnectorhq.com/calendars/events/appointments/${appointment.appointmentId}`,
+    //         {
+    //           calendarId: calendarId,
+    //           startTime: appointment.newStartTime,
+    //           locationId: "mJbcKUu0vB4yx1ekaRZh",
+    //           ignoreFreeSlotValidation: true
+    //         },
+    //         {
+    //           headers: {
+    //             Authorization: "Bearer pit-903330fa-f57e-44f6-be36-48f93ef7bbcb",
+    //             Version: "2021-04-15"
+    //           }
+    //         }
+    //       );
 
-      if (conflictingAppointment) {
-        console.log(`Conflicting appointment found at ${formattedNewStartTime}. Moving it first.`);
-        await moveAppointmentAfterOneHour(conflictingAppointment.appointmentId, calendarId);
-      }
+    //       // If GHL API response is OK, update Firebase
+    //       if (ghlResponse.status === 200) {
+    //         //emails sent
+    //         // ✅ Update `appointments` collection correctly
+    //         const allAppointmentsResponse = await axios.get(`${firebaseDB}/appointments.json`);
+    //         const allAppointments = allAppointmentsResponse.data;
 
-      await updateAppointmentInGHLAndFirebase(appointmentId, calendarId, formattedNewStartTime, calendarAppointments);
-      console.log(`Appointment ${appointmentId} moved to ${formattedNewStartTime}`);
+    //         // Find the correct key in the appointments collection
+    //         let appointmentKey = Object.keys(allAppointments).find(
+    //           key => allAppointments[key].appointmentId === appointment.appointmentId
+    //         );
 
-    } catch (error) {
-      console.error("Error moving appointment:", error);
-    }
+    //         if (appointmentKey) {
+    //           await axios.patch(`${firebaseDB}/appointments/${appointmentKey}.json`, {
+    //             startTime: appointment.newStartTime
+    //           });
+    //         } else {
+    //           console.error(`Appointment ${appointment.appointmentId} not found in appointments collection.`);
+    //         }
+
+    //         // ✅ Update `calendarAppointments` collection
+    //         const updatedAppointments = calendarAppointments.map(app => {
+    //           if (app.appointmentId === appointment.appointmentId) {
+    //             return { ...app, startTime: appointment.newStartTime };
+    //           }
+    //           return app;
+    //         });
+
+    //         await axios.put(`${firebaseDB}/calendarAppointments/${calendarId}.json`, {
+    //           calendarId,
+    //           appointments: updatedAppointments
+    //         });
+
+    //         console.log(`Appointment ${appointment.appointmentId} successfully moved to ${appointment.newStartTime}`);
+    //       } else {
+    //         console.error(`Failed to update appointment ${appointment.appointmentId} in GHL`);
+    //       }
+    //     } catch (ghlError) {
+    //       console.error(`Error updating appointment ${appointment.appointmentId} in GHL:`, ghlError);
+    //     }
+    //   }
+    // } catch (error) {
+    //   console.error("Error moving appointment:", error);
+    // }
   };
-
-  const handleSubmitAPI = async (e, calendarId) => {
-    e.preventDefault();
-    let newCalendarId = calendarId;
-
-    if (Object.keys(selectedDays).length === 0) {
-      console.log("Please select at least one day for availability.");
-      return;
-    }
-    const openHours = Object.keys(selectedDays).map((day) => ({
-      daysOfTheWeek: [parseInt(day)],
-      hours: [
-        {
-          openHour: selectedDays[day].openHour,
-          openMinute: 0,
-          closeHour: selectedDays[day].closeHour,
-          closeMinute: 0,
-        },
-      ],
-    }));
-    console.log("newCalendariD : " , newCalendarId);
-
-    const requestBody = {
-      openHours
-    };
-
-    try {
-      const response = await fetch(`https://services.leadconnectorhq.com/calendars/${newCalendarId}`, {
-        method: "PUT",
-        headers: {
-          Authorization: "Bearer pit-903330fa-f57e-44f6-be36-48f93ef7bbcb",
-          Version: "2021-04-15",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      const result = await response.json();
-      console.log("API Response:", result);
-    } catch (error) {
-      console.error("API Error:", error);
-    }
-  };
-
-  // ✅ Function to handle timezone offset correctly
-  const formatDateWithOffset = (date, offsetHours) => {
-    const pad = num => String(num).padStart(2, '0');
-
-    const year = date.getFullYear();
-    const month = pad(date.getMonth() + 1);
-    const day = pad(date.getDate());
-    const hours = pad(date.getHours());
-    const minutes = pad(date.getMinutes());
-    const seconds = pad(date.getSeconds());
-
-    const offsetSign = offsetHours >= 0 ? "+" : "-";
-    const absOffsetHours = Math.abs(offsetHours);
-    const offsetFormatted = `${offsetSign}${pad(absOffsetHours)}:00`;
-
-    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${offsetFormatted}`;
-  };
-
-
-  const updateAppointmentInGHLAndFirebase = async (appointmentId, calendarId, newStartTime, calendarAppointments) => {
-    try {
-      const ghlResponse = await axios.put(
-        `https://services.leadconnectorhq.com/calendars/events/appointments/${appointmentId}`,
-        {
-          calendarId: calendarId,
-          startTime: newStartTime,
-          locationId: "mJbcKUu0vB4yx1ekaRZh",
-          ignoreFreeSlotValidation: true
-        },
-        {
-          headers: {
-            Authorization: "Bearer pit-903330fa-f57e-44f6-be36-48f93ef7bbcb",
-            Version: "2021-04-15"
-          }
-        }
-      );
-
-      if (ghlResponse.status === 200) {
-        console.log(`GHL updated appointment ${appointmentId} to ${newStartTime}`);
-
-        // ✅ Convert back to Firebase format (YYYY-MM-DDTHH:mm:ss)
-        const firebaseFormattedTime = newStartTime.split("+")[0];
-
-        const allAppointmentsResponse = await axios.get(`${firebaseDB}/appointments.json`);
-        const allAppointments = allAppointmentsResponse.data;
-
-        let appointmentKey = Object.keys(allAppointments).find(
-          key => allAppointments[key].appointmentId === appointmentId
-        );
-
-        if (appointmentKey) {
-          await axios.patch(`${firebaseDB}/appointments/${appointmentKey}.json`, { startTime: firebaseFormattedTime });
-        } else {
-          console.error(`Appointment ${appointmentId} not found in appointments collection.`);
-        }
-
-        // ✅ Update only the latest appointment in `calendarAppointments`
-        let index = calendarAppointments.findIndex(app => app.appointmentId === appointmentId);
-        if (index !== -1) {
-          calendarAppointments[index].startTime = firebaseFormattedTime;
-        }
-
-        await axios.put(`${firebaseDB}/calendarAppointments/${calendarId}.json`, {
-          calendarId,
-          appointments: calendarAppointments
-        });
-
-        console.log(`Appointment ${appointmentId} successfully moved to ${firebaseFormattedTime}`);
-      } else {
-        console.error(`Failed to update appointment ${appointmentId} in GHL`);
-      }
-    } catch (ghlError) {
-      console.error(`Error updating appointment ${appointmentId} in GHL:`, ghlError);
-    }
-  };
-
-
-
-
-
-
-
 
   // Function to open dialog with appointment details
   const handleOpenDialog = (appointment) => {
@@ -349,21 +322,64 @@ const MechanicPortal = () => {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "row", justifyContent: "center", alignItems: "center" }}>
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", width: "20%" }}>
-        <Button variant="contained" color="primary" onClick={() => setShowAppointments(true)}>
-          Show Appointments
-        </Button>
-        <Button variant="contained" color="secondary" onClick={() => setShowAppointments(false)} style={{ marginLeft: "10px" }}>
-          Set Availability
-        </Button>
+    <div className="admin-portal">
+
+      <div className="sidebar">
+        <button onClick={() => setActiveTable('pending')}>Pending</button>
+        <button onClick={() => setActiveTable('completed')}>Completed</button>
+        <button onClick={() => setActiveTable('availability')}>Availability</button>
+        <button onClick={() => setActiveTable('ratings')}>Ratings</button>
       </div>
-      <div>
-        <h1>Mechanic Portal</h1>
-        {userEmail ? <h3>Logged in as: {userEmail}</h3> : <h3>Not signed in</h3>}
-        <h2>Appointments</h2>
-        {showAppointments ? (
-          <table className="appointments-table">
+      <div className="table-container">
+        {activeTable === 'pending' && (
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Mobile</th>
+                <th>Address</th>
+                <th>Visit Preference</th>
+                <th>Selected Services</th>
+                <th>Details</th> {/* Updated Column */}
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {appointments.pending.length > 0 ? (
+                appointments.pending.map((appointment, index) => (
+                  <tr key={appointment.id}>
+                    <td>{appointment.name}</td>
+                    <td>{appointment.email}</td>
+                    <td>{appointment.mobile}</td>
+                    <td>{appointment.address}</td>
+                    <td>{appointment.visitPreference}</td>
+                    <td>{appointment.selectedServices}</td>
+                    <td>
+                      <Button variant="contained" color="primary" onClick={() => handleOpenDialog(appointment)}>
+                        Open Details
+                      </Button></td>
+                    <td>
+                      <Button variant="contained" color="success" onClick={() => updateAppointmentStatus(appointment.id)}>
+                        Done
+                      </Button>
+                      <Button variant="contained" color="error" onClick={() => deleteAppointment(appointment.id)} style={{ marginLeft: "4px" }}>
+                        X
+                      </Button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="8">No appointments available.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        )}
+
+        {activeTable === 'completed' && (
+          <table className="data-table">
             <thead>
               <tr>
                 <th>Name</th>
@@ -376,8 +392,8 @@ const MechanicPortal = () => {
               </tr>
             </thead>
             <tbody>
-              {appointments.length > 0 ? (
-                appointments.map((appointment, index) => (
+              {appointments.completed.length > 0 ? (
+                appointments.completed.map((appointment, index) => (
                   <tr key={index}>
                     <td>{appointment.name}</td>
                     <td>{appointment.email}</td>
@@ -394,34 +410,41 @@ const MechanicPortal = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="7">No appointments available.</td>
+                  <td colSpan="7">No appointments completed yet.</td>
                 </tr>
               )}
             </tbody>
           </table>
-        ) : (
-          <div>
-            <h2>Select Available Days</h2>
-            {days.map((day) => (
-              <div key={day.value}>
-                <Checkbox checked={!!selectedDays[day.value]} onChange={() => handleCheckboxChange(day.value)} />
-                {day.label}
-                {selectedDays[day.value] && (
-                  <span> ({selectedDays[day.value].openHour}:00 - {selectedDays[day.value].closeHour}:00)</span>
-                )}
-              </div>
-            ))}
+        )}
+      </div>
+      {/* MUI Dialog for Appointment Details */}
+      <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
+        <DialogTitle>Appointment Details</DialogTitle>
+        <DialogContent>
+          {selectedAppointment && (
+            <>
+              <p><strong>Appointment ID:</strong> {selectedAppointment.appointmentId || "N/A"}</p>
+              <p><strong>Visit Preference:</strong> {selectedAppointment.visitPreference || "N/A"}</p>
+              <p>
+                <strong>Start Time:</strong>
+                {selectedAppointment.startTime ? dayjs(selectedAppointment.startTime).format("MMMM D, YYYY [at] hA") : "Not Set"}
+              </p>
+            </>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenDialog(false)}>Close</Button>
+          {selectedAppointment && (
             <Button
               variant="contained"
               color="primary"
-              onClick={(e) => handleSubmitAPI(e, calendarId)}
-            >
+              >
+              {/*onClick={(e) => handleSubmitAPI(e, calendarId)}*/}
               Update Availability
             </Button>
-          </div>
-        )}
-
-
+          )}
+        </DialogActions>
+</Dialog>
         {/* MUI Dialog for Appointment Details */}
         <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
           <DialogTitle>Select Open and Close Hours</DialogTitle>
@@ -466,9 +489,53 @@ const MechanicPortal = () => {
           </DialogActions>
         </Dialog>
 
-      </div>
+    
     </div>
   );
 };
 
 export default MechanicPortal;
+
+
+
+{/* 
+  <div>
+      
+      <h1>Mechanic Portal</h1>
+      <h2>Appointments</h2>
+      <table className="appointments-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Mobile</th>
+            <th>Address</th>
+            <th>Visit Preference</th>
+            <th>Selected Services</th>
+            <th>Details</th> 
+            </tr>
+            </thead>
+            <tbody>
+              {appointments.length > 0 ? (
+                appointments.map((appointment, index) => (
+                  <tr key={index}>
+                    <td>{appointment.name}</td>
+                    <td>{appointment.email}</td>
+                    <td>{appointment.mobile}</td>
+                    <td>{appointment.address}</td>
+                    <td>{appointment.visitPreference}</td>
+                    <td>{appointment.selectedServices}</td>
+                    <td>
+                      <Button variant="contained" color="primary" onClick={() => handleOpenDialog(appointment)}>
+                        Open Details
+                      </Button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="7">No appointments available.</td>
+                </tr>
+              )}
+            </tbody>
+          </table> */}

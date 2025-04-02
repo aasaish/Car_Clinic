@@ -18,7 +18,7 @@ const SignUp = () => {
   const [address, setAddress] = useState('');
   const [specialty, setSpecialty] = useState('');
   const [experience, setExperience] = useState('');
-  // const [paymentProof, setPaymentProof] = useState(null);
+  const [paymentProof, setPaymentProof] = useState(null);
   const [alert, setAlert] = useState({
     show: false,
     message: '',
@@ -194,7 +194,73 @@ const SignUp = () => {
     }
   };
 
+  const getAccessToken = async () => {
+    const clientId = "5786665754-131bggp0f0k2f4j4cdjaimqn0idj1vnf.apps.googleusercontent.com";
+    const clientSecret = "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";
+    const refreshToken = "1//099ExCM7JZXeXCgYIARAAGAkSNwF-L9Ir_2auj4nj4KAzepIvI24JJ6-EVY4gTgSq_AH5M5G0s9-VHhsIWux6fqzxzRxD4MnlAhg";
+  
+    try {
+      const response = await fetch("https://oauth2.googleapis.com/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          client_id: clientId,
+          client_secret: clientSecret,
+          refresh_token: refreshToken,
+          grant_type: "refresh_token",
+        }),
+      });
+  
+      const data = await response.json();
+      return data.access_token;
+    } catch (error) {
+      console.error("Error fetching access token:", error);
+      return null;
+    }
+  };
+  
 
+  const uploadToGoogleDrive = async (file) => {
+    const accessToken = await getAccessToken();
+    if (!accessToken) {
+      console.error("Failed to get access token.");
+      return;
+    }
+  
+    const metadata = {
+      name: file.name,
+      mimeType: file.type,
+      parents: ["1woYwQGYjFEg51aHzCEB2S3gjoNn4TpsY"], // Replace with the Google Drive folder ID where you want to store the file
+    };
+  
+    const formData = new FormData();
+    formData.append(
+      "metadata",
+      new Blob([JSON.stringify(metadata)], { type: "application/json" })
+    );
+    formData.append("file", file);
+  
+    try {
+      const response = await fetch(
+        "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: formData,
+        }
+      );
+  
+      const data = await response.json();
+      console.log("File uploaded successfully:", data);
+      return data.id; // Returns the file ID
+
+      
+    } catch (error) {
+      console.error("Error uploading file to Google Drive:", error);
+    }
+  };
 
 
   const handleUserSignUp = async () => {
@@ -221,12 +287,18 @@ const SignUp = () => {
 
   const handleMechanicSignUp = async (calendarLink, calendarId) => {
     // Logic to handle mechanic sign-up with the form data (e.g., save to Firestore or Realtime Database)
-    // if (!paymentProof) {
-    //   showAlert("Please upload payment proof!");
-    //   return;
-    // }showAlert
+    if (!paymentProof) {
+      showAlert("Please upload payment proof!");
+      return;
+    }
 
     try {
+
+      const fileId = await uploadToGoogleDrive(paymentProof);
+      if (!fileId) {
+        showAlert("Failed to upload payment proof!");
+        return;
+      }
 
       const mechanicData = {
         name,
@@ -239,12 +311,12 @@ const SignUp = () => {
         status: "pending", // Mechanic request needs admin approval
         password,
         calendarLink: calendarLink,
-        calendarId: calendarId
-        // paymentProof: paymentProof.name, // Ideally, store this in Firebase Storage
+        calendarId: calendarId,
+        paymentProof: `https://drive.google.com/file/d/${fileId}/view`,  // Ideally, store this in Firebase Storage
       };
 
       console.log(mechanicData);
-      
+
 
       await axios.post(firebaseURL, mechanicData, {
         headers: { "Content-Type": "application/json" },
@@ -336,7 +408,7 @@ const SignUp = () => {
         ) : (
           <div>
             <h2>Mechanic Signup</h2>
-            <form onSubmit={handleSubmitAPI} className="signup-form">
+            <form onSubmit={handleSubmit} className="signup-form">
               <table>
                 <tbody>
                   <tr><td><label>Name:</label></td><td><input type="text" value={name} onChange={(e) => setName(e.target.value)} required /></td></tr>
@@ -354,7 +426,17 @@ const SignUp = () => {
                         <option value="Painter">Painter</option>
                       </select>
                     </td>
-                  </tr>                  <tr><td><label>Experience:</label></td><td><input type="text" value={experience} onChange={(e) => setExperience(e.target.value)} required /></td></tr>
+                  </tr>
+                  <tr><td><label>Experience:</label></td><td><input type="text" value={experience} onChange={(e) => setExperience(e.target.value)} required /></td></tr>
+                  <tr><td><label>Payment Proof</label></td>
+                    <td>
+                      <input
+                        type="file"
+                        accept="image/*,application/pdf"
+                        onChange={(e) => setPaymentProof(e.target.files[0])}
+                      />
+                    </td>
+                  </tr>
                   <tr><td><label>Password:</label></td><td><input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required /></td></tr>
                   <tr><td><label>Confirm Password:</label></td><td><input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required /></td></tr>
                 </tbody>
