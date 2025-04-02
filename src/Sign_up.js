@@ -110,7 +110,7 @@ const SignUp = () => {
   };
 
   // Handle form submit
-  const handleSubmit = (e, calendarLink , calendarId) => {
+  const handleSubmit = (e, calendarLink, calendarId) => {
     e.preventDefault();
     if (password !== confirmPassword) {
       showAlert('Passwords do not match!');
@@ -119,7 +119,7 @@ const SignUp = () => {
     if (userType === 'user') {
       handleUserSignUp();
     } else {
-      handleMechanicSignUp(calendarLink , calendarId);
+      handleMechanicSignUp(calendarLink, calendarId);
     }
   };
   // const handleSubmit = (e) => {
@@ -188,7 +188,7 @@ const SignUp = () => {
       console.log("API Response:", result.calendar.id);
       const calendarId = result.calendar.id;
       const calendarLink = `https://api.leadconnectorhq.com/widget/booking/${calendarId}`
-      handleSubmit(e, calendarLink , calendarId);
+      handleSubmit(e, calendarLink, calendarId);
     } catch (error) {
       console.error("API Error:", error);
     }
@@ -219,7 +219,7 @@ const SignUp = () => {
     }
   };
 
-  const handleMechanicSignUp = async (calendarLink , calendarId) => {
+  const handleMechanicSignUp = async (calendarLink, calendarId) => {
     // Logic to handle mechanic sign-up with the form data (e.g., save to Firestore or Realtime Database)
     // if (!paymentProof) {
     //   showAlert("Please upload payment proof!");

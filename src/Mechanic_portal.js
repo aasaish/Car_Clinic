@@ -2,17 +2,82 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import dayjs from "dayjs";
 import "./Mechanic_portal.css";
-import { Button, Dialog, DialogTitle, DialogContent, DialogActions } from "@mui/material";
+import { Button, Checkbox, Dialog, DialogTitle, DialogContent, DialogActions, TextField, FormControl, Select, MenuItem, InputLabel } from "@mui/material";
+import { getAuth, onAuthStateChanged } from "firebase/auth"; // Import Firebase Auth
+
 
 const MechanicPortal = () => {
   // State to store appointments
   const [appointments, setAppointments] = useState([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [userEmail, setUserEmail] = useState(null);
+
+  const [selectedDays, setSelectedDays] = useState({});
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [currentDay, setCurrentDay] = useState(null);
+  const [timeInputs, setTimeInputs] = useState({ openHour: "", closeHour: "" });
+  const [calendarId, setCalendarId] = useState(null);
+  const [alert, setAlert] = useState({
+    show: false,
+    message: '',
+    onConfirm: () => { },
+  });
+  const [showAppointments, setShowAppointments] = useState(true);
+
+
+
+  const handleCheckboxChange = (day) => {
+    if (selectedDays[day]) {
+      const newDays = { ...selectedDays };
+      delete newDays[day];
+      setSelectedDays(newDays);
+    } else {
+      setCurrentDay(day);
+      setDialogOpen(true);
+    }
+  };
+
+
+
+  const handleTimeChange = (field, value) => {
+    setTimeInputs((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSubmitTime = () => {
+    setSelectedDays((prev) => ({
+      ...prev,
+      [currentDay]: { openHour: timeInputs.openHour, closeHour: timeInputs.closeHour },
+    }));
+    setDialogOpen(false);
+    setTimeInputs({ openHour: "", closeHour: "" });
+  };
+
+  const showAlert = (message, onConfirm) => {
+    setAlert({ show: true, message, onConfirm });
+  };
+
+  // Function to close alert
+  const closeAlert = () => {
+    setAlert({ show: false, message: '', onConfirm: () => { } });
+  };
+
+
+  const days = [
+    { label: "Sunday", value: 0 },
+    { label: "Monday", value: 1 },
+    { label: "Tuesday", value: 2 },
+    { label: "Wednesday", value: 3 },
+    { label: "Thursday", value: 4 },
+    { label: "Friday", value: 5 },
+    { label: "Saturday", value: 6 },
+  ];
+
 
   // Firebase URL
   const firebaseDB = "https://car-clinic-9cc74-default-rtdb.firebaseio.com";
   const firebaseURL = `${firebaseDB}/appointments.json`;
+  const mechanicsURL = `${firebaseDB}/approvedMechanics.json`;
   const ghlUpdateURL = "https://services.leadconnectorhq.com/calendars/events/appointments";
   const calendarAppointmentsURL = "https://car-clinic-9cc74-default-rtdb.firebaseio.com/calendarAppointments.json";
 
@@ -23,14 +88,53 @@ const MechanicPortal = () => {
   const LOCATION_ID = "mJbcKUu0vB4yx1ekaRZh";
 
   useEffect(() => {
-    fetchAppointments();
+    // Get the currently signed-in user
+    const auth = getAuth();
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUserEmail(user.email); // Store the user's email
+        fetchAppointments(user.email); // Fetch only relevant appointments
+        fetchMechanicCalendarId(user.email);
+      } else {
+        setUserEmail(null);
+        setAppointments([]);
+      }
+    });
   }, []);
 
-  const fetchAppointments = async () => {
+  const fetchMechanicCalendarId = async (email) => {
+    try {
+      const response = await axios.get(mechanicsURL);
+      if (response.data) {
+        const mechanic = Object.values(response.data).find(
+          (m) => m.email === email
+        );
+        if (mechanic) {
+          setCalendarId(mechanic.calendarId);
+          console.log("calendar Id : ", mechanic.calendarId)
+
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching calendarId:", error);
+    }
+  };
+
+  // useEffect(() => {
+  //   fetchAppointments();
+  // }, []);
+
+  const fetchAppointments = async (email) => {
     try {
       const response = await axios.get(firebaseURL);
       if (response.data) {
-        setAppointments(Object.values(response.data));
+        console.log(response.data);
+        // Filter appointments where 'mechanicEmail' matches the signed-in user's email
+        const filteredAppointments = Object.values(response.data).filter(
+          (appointment) => appointment.mechanicEmail === email
+        );
+        console.log("mech email : ", filteredAppointments);
+        setAppointments(filteredAppointments);
       }
     } catch (error) {
       console.error("Error fetching appointments:", error);
@@ -47,102 +151,191 @@ const MechanicPortal = () => {
     }
   };
 
+  const formatStartTime = (date) => {
+    const pad = (num) => String(num).padStart(2, '0');
+
+    const year = date.getFullYear();
+    const month = pad(date.getMonth() + 1); // Months are 0-based
+    const day = pad(date.getDate());
+    const hours = pad(date.getHours());
+    const minutes = pad(date.getMinutes());
+    const seconds = pad(date.getSeconds());
+
+    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}+05:00`;
+  };
+
   const moveAppointmentAfterOneHour = async (appointmentId, calendarId) => {
     try {
-      // Fetch calendarAppointments for the specific calendarId
       const calendarResponse = await axios.get(`${firebaseDB}/calendarAppointments/${calendarId}.json`);
-      const calendarAppointments = calendarResponse.data ? calendarResponse.data.appointments : [];
-  
-      // Find the appointment we want to move
-      const targetAppointment = calendarAppointments.find(app => app.appointmentId === appointmentId);
-      if (!targetAppointment) {
+      if (!calendarResponse.data || !calendarResponse.data.appointments) {
+        console.error(`No appointments found for calendarId: ${calendarId}`);
+        return;
+      }
+
+      let calendarAppointments = calendarResponse.data.appointments.filter(app => app !== null);
+      console.log("Filtered calendar data:", calendarAppointments);
+
+      let latestAppointment = calendarAppointments
+        .filter(app => app.appointmentId === appointmentId)
+        .reduce((latest, current) => {
+          return new Date(current.startTime) > new Date(latest.startTime) ? current : latest;
+        }, calendarAppointments[0]);
+
+      if (!latestAppointment) {
         console.error("Appointment not found in calendarAppointments.");
         return;
       }
-  
-      // Calculate the new startTime (+1 hour)
-      let newStartTime = new Date(targetAppointment.startTime);
+
+      let newStartTime = new Date(latestAppointment.startTime);
       newStartTime.setHours(newStartTime.getHours() + 1);
-      newStartTime = newStartTime.toISOString(); // Convert to string format
-  
-      // Find all appointments that need to be moved
-      let appointmentsToUpdate = [];
-      for (let i = calendarAppointments.length - 1; i >= 0; i--) {
-        if (new Date(calendarAppointments[i].startTime) >= new Date(targetAppointment.startTime)) {
-          let updatedTime = new Date(calendarAppointments[i].startTime);
-          updatedTime.setHours(updatedTime.getHours() + 1);
-          appointmentsToUpdate.push({
-            appointmentId: calendarAppointments[i].appointmentId,
-            newStartTime: updatedTime.toISOString(),
-          });
-        }
+      const formattedNewStartTime = formatDateWithOffset(newStartTime, 5);
+
+      console.log("Latest appointment:", latestAppointment);
+      console.log("Formatted new start time:", formattedNewStartTime);
+
+      let conflictingAppointment = calendarAppointments.find(
+        app => new Date(app.startTime).getTime() === newStartTime.getTime()
+      );
+
+      if (conflictingAppointment) {
+        console.log(`Conflicting appointment found at ${formattedNewStartTime}. Moving it first.`);
+        await moveAppointmentAfterOneHour(conflictingAppointment.appointmentId, calendarId);
       }
-  
-      // ✅ Update GHL API for each affected appointment
-      for (let appointment of appointmentsToUpdate) {
-        try {
-          const ghlResponse = await axios.put(
-            `https://services.leadconnectorhq.com/calendars/events/appointments/${appointment.appointmentId}`,
-            {
-              calendarId: calendarId,
-              startTime: appointment.newStartTime,
-              locationId: "mJbcKUu0vB4yx1ekaRZh",
-              ignoreFreeSlotValidation: true
-            },
-            {
-              headers: {
-                Authorization: "Bearer pit-903330fa-f57e-44f6-be36-48f93ef7bbcb",
-                Version: "2021-04-15"
-              }
-            }
-          );
-  
-          // If GHL API response is OK, update Firebase
-          if (ghlResponse.status === 200) {
-            //emails sent
-            // ✅ Update `appointments` collection correctly
-            const allAppointmentsResponse = await axios.get(`${firebaseDB}/appointments.json`);
-            const allAppointments = allAppointmentsResponse.data;
-  
-            // Find the correct key in the appointments collection
-            let appointmentKey = Object.keys(allAppointments).find(
-              key => allAppointments[key].appointmentId === appointment.appointmentId
-            );
-  
-            if (appointmentKey) {
-              await axios.patch(`${firebaseDB}/appointments/${appointmentKey}.json`, {
-                startTime: appointment.newStartTime
-              });
-            } else {
-              console.error(`Appointment ${appointment.appointmentId} not found in appointments collection.`);
-            }
-  
-            // ✅ Update `calendarAppointments` collection
-            const updatedAppointments = calendarAppointments.map(app => {
-              if (app.appointmentId === appointment.appointmentId) {
-                return { ...app, startTime: appointment.newStartTime };
-              }
-              return app;
-            });
-  
-            await axios.put(`${firebaseDB}/calendarAppointments/${calendarId}.json`, {
-              calendarId,
-              appointments: updatedAppointments
-            });
-  
-            console.log(`Appointment ${appointment.appointmentId} successfully moved to ${appointment.newStartTime}`);
-          } else {
-            console.error(`Failed to update appointment ${appointment.appointmentId} in GHL`);
-          }
-        } catch (ghlError) {
-          console.error(`Error updating appointment ${appointment.appointmentId} in GHL:`, ghlError);
-        }
-      }
+
+      await updateAppointmentInGHLAndFirebase(appointmentId, calendarId, formattedNewStartTime, calendarAppointments);
+      console.log(`Appointment ${appointmentId} moved to ${formattedNewStartTime}`);
+
     } catch (error) {
       console.error("Error moving appointment:", error);
     }
   };
-  
+
+  const handleSubmitAPI = async (e, calendarId) => {
+    e.preventDefault();
+    let newCalendarId = calendarId;
+
+    if (Object.keys(selectedDays).length === 0) {
+      console.log("Please select at least one day for availability.");
+      return;
+    }
+    const openHours = Object.keys(selectedDays).map((day) => ({
+      daysOfTheWeek: [parseInt(day)],
+      hours: [
+        {
+          openHour: selectedDays[day].openHour,
+          openMinute: 0,
+          closeHour: selectedDays[day].closeHour,
+          closeMinute: 0,
+        },
+      ],
+    }));
+    console.log("newCalendariD : " , newCalendarId);
+
+    const requestBody = {
+      openHours
+    };
+
+    try {
+      const response = await fetch(`https://services.leadconnectorhq.com/calendars/${newCalendarId}`, {
+        method: "PUT",
+        headers: {
+          Authorization: "Bearer pit-903330fa-f57e-44f6-be36-48f93ef7bbcb",
+          Version: "2021-04-15",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      const result = await response.json();
+      console.log("API Response:", result);
+    } catch (error) {
+      console.error("API Error:", error);
+    }
+  };
+
+  // ✅ Function to handle timezone offset correctly
+  const formatDateWithOffset = (date, offsetHours) => {
+    const pad = num => String(num).padStart(2, '0');
+
+    const year = date.getFullYear();
+    const month = pad(date.getMonth() + 1);
+    const day = pad(date.getDate());
+    const hours = pad(date.getHours());
+    const minutes = pad(date.getMinutes());
+    const seconds = pad(date.getSeconds());
+
+    const offsetSign = offsetHours >= 0 ? "+" : "-";
+    const absOffsetHours = Math.abs(offsetHours);
+    const offsetFormatted = `${offsetSign}${pad(absOffsetHours)}:00`;
+
+    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${offsetFormatted}`;
+  };
+
+
+  const updateAppointmentInGHLAndFirebase = async (appointmentId, calendarId, newStartTime, calendarAppointments) => {
+    try {
+      const ghlResponse = await axios.put(
+        `https://services.leadconnectorhq.com/calendars/events/appointments/${appointmentId}`,
+        {
+          calendarId: calendarId,
+          startTime: newStartTime,
+          locationId: "mJbcKUu0vB4yx1ekaRZh",
+          ignoreFreeSlotValidation: true
+        },
+        {
+          headers: {
+            Authorization: "Bearer pit-903330fa-f57e-44f6-be36-48f93ef7bbcb",
+            Version: "2021-04-15"
+          }
+        }
+      );
+
+      if (ghlResponse.status === 200) {
+        console.log(`GHL updated appointment ${appointmentId} to ${newStartTime}`);
+
+        // ✅ Convert back to Firebase format (YYYY-MM-DDTHH:mm:ss)
+        const firebaseFormattedTime = newStartTime.split("+")[0];
+
+        const allAppointmentsResponse = await axios.get(`${firebaseDB}/appointments.json`);
+        const allAppointments = allAppointmentsResponse.data;
+
+        let appointmentKey = Object.keys(allAppointments).find(
+          key => allAppointments[key].appointmentId === appointmentId
+        );
+
+        if (appointmentKey) {
+          await axios.patch(`${firebaseDB}/appointments/${appointmentKey}.json`, { startTime: firebaseFormattedTime });
+        } else {
+          console.error(`Appointment ${appointmentId} not found in appointments collection.`);
+        }
+
+        // ✅ Update only the latest appointment in `calendarAppointments`
+        let index = calendarAppointments.findIndex(app => app.appointmentId === appointmentId);
+        if (index !== -1) {
+          calendarAppointments[index].startTime = firebaseFormattedTime;
+        }
+
+        await axios.put(`${firebaseDB}/calendarAppointments/${calendarId}.json`, {
+          calendarId,
+          appointments: calendarAppointments
+        });
+
+        console.log(`Appointment ${appointmentId} successfully moved to ${firebaseFormattedTime}`);
+      } else {
+        console.error(`Failed to update appointment ${appointmentId} in GHL`);
+      }
+    } catch (ghlError) {
+      console.error(`Error updating appointment ${appointmentId} in GHL:`, ghlError);
+    }
+  };
+
+
+
+
+
+
+
+
   // Function to open dialog with appointment details
   const handleOpenDialog = (appointment) => {
     setSelectedAppointment(appointment);
@@ -156,75 +349,124 @@ const MechanicPortal = () => {
   };
 
   return (
-    <div>
-      <h1>Mechanic Portal</h1>
-      <h2>Appointments</h2>
-      <table className="appointments-table">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Email</th>
-            <th>Mobile</th>
-            <th>Address</th>
-            <th>Visit Preference</th>
-            <th>Selected Services</th>
-            <th>Details</th> {/* Updated Column */}
-          </tr>
-        </thead>
-        <tbody>
-          {appointments.length > 0 ? (
-            appointments.map((appointment, index) => (
-              <tr key={index}>
-                <td>{appointment.name}</td>
-                <td>{appointment.email}</td>
-                <td>{appointment.mobile}</td>
-                <td>{appointment.address}</td>
-                <td>{appointment.visitPreference}</td>
-                <td>{appointment.selectedServices}</td>
-                <td>
-                  <Button variant="contained" color="primary" onClick={() => handleOpenDialog(appointment)}>
-                    Open Details
-                  </Button>
-                </td>
+    <div style={{ display: "flex", flexDirection: "row", justifyContent: "center", alignItems: "center" }}>
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", width: "20%" }}>
+        <Button variant="contained" color="primary" onClick={() => setShowAppointments(true)}>
+          Show Appointments
+        </Button>
+        <Button variant="contained" color="secondary" onClick={() => setShowAppointments(false)} style={{ marginLeft: "10px" }}>
+          Set Availability
+        </Button>
+      </div>
+      <div>
+        <h1>Mechanic Portal</h1>
+        {userEmail ? <h3>Logged in as: {userEmail}</h3> : <h3>Not signed in</h3>}
+        <h2>Appointments</h2>
+        {showAppointments ? (
+          <table className="appointments-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Mobile</th>
+                <th>Address</th>
+                <th>Visit Preference</th>
+                <th>Selected Services</th>
+                <th>Details</th> {/* Updated Column */}
               </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan="7">No appointments available.</td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-
-      {/* MUI Dialog for Appointment Details */}
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
-        <DialogTitle>Appointment Details</DialogTitle>
-        <DialogContent>
-          {selectedAppointment && (
-            <>
-              <p><strong>Appointment ID:</strong> {selectedAppointment.appointmentId || "N/A"}</p>
-              <p><strong>Visit Preference:</strong> {selectedAppointment.visitPreference || "N/A"}</p>
-              <p>
-                <strong>Start Time:</strong>
-                {selectedAppointment.startTime ? dayjs(selectedAppointment.startTime).format("MMMM D, YYYY [at] hA") : "Not Set"}
-              </p>
-            </>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenDialog(false)}>Close</Button>
-          {selectedAppointment && (
+            </thead>
+            <tbody>
+              {appointments.length > 0 ? (
+                appointments.map((appointment, index) => (
+                  <tr key={index}>
+                    <td>{appointment.name}</td>
+                    <td>{appointment.email}</td>
+                    <td>{appointment.mobile}</td>
+                    <td>{appointment.address}</td>
+                    <td>{appointment.visitPreference}</td>
+                    <td>{appointment.selectedServices}</td>
+                    <td>
+                      <Button variant="contained" color="primary" onClick={() => handleOpenDialog(appointment)}>
+                        Open Details
+                      </Button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="7">No appointments available.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        ) : (
+          <div>
+            <h2>Select Available Days</h2>
+            {days.map((day) => (
+              <div key={day.value}>
+                <Checkbox checked={!!selectedDays[day.value]} onChange={() => handleCheckboxChange(day.value)} />
+                {day.label}
+                {selectedDays[day.value] && (
+                  <span> ({selectedDays[day.value].openHour}:00 - {selectedDays[day.value].closeHour}:00)</span>
+                )}
+              </div>
+            ))}
             <Button
               variant="contained"
               color="primary"
-              onClick={() => moveAppointmentAfterOneHour(selectedAppointment.appointmentId, selectedAppointment.calendarId)}
+              onClick={(e) => handleSubmitAPI(e, calendarId)}
             >
-              Move After 1 Hour
+              Update Availability
             </Button>
-          )}
-        </DialogActions>
-      </Dialog>
+          </div>
+        )}
 
+
+        {/* MUI Dialog for Appointment Details */}
+        <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
+          <DialogTitle>Select Open and Close Hours</DialogTitle>
+          <DialogContent>
+            <FormControl fullWidth margin="normal">
+              <InputLabel>Open Hour</InputLabel>
+              <Select value={timeInputs.openHour} onChange={(e) => handleTimeChange("openHour", e.target.value)}>
+                {[...Array(24).keys()].map((hour) => (
+                  <MenuItem key={hour} value={hour}>
+                    {hour}:00
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl fullWidth margin="normal">
+              <InputLabel>Close Hour</InputLabel>
+              <Select value={timeInputs.closeHour} onChange={(e) => handleTimeChange("closeHour", e.target.value)}>
+                {[...Array(24).keys()].map((hour) => (
+                  <MenuItem key={hour} value={hour}>
+                    {hour}:00
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </DialogContent>
+
+          <DialogActions>
+            <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
+            <Button
+              onClick={handleSubmitTime}
+              color="primary"
+              variant="contained"
+              disabled={
+                timeInputs.openHour === "" ||
+                timeInputs.closeHour === "" ||
+                timeInputs.openHour >= timeInputs.closeHour
+              }
+            >
+              Save
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+      </div>
     </div>
   );
 };

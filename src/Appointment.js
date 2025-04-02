@@ -93,7 +93,8 @@ const Appointment = () => {
         [name]: value,
         calendarLink: selectedMechanic?.calendarLink || "", // Store mechanic's calendar link
         mechanicName: selectedMechanic?.name || "",
-        calendarId: selectedMechanic?.calendarId
+        calendarId: selectedMechanic?.calendarId|| "",
+        mechanicEmail: selectedMechanic?.email|| ""
       });
     } else {
       setFormData({
