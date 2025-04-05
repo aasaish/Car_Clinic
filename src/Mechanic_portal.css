@@ -24,6 +24,10 @@ h2 {
   margin-bottom: 15px;
 }
 
+.table{
+  min-height: 40vh;
+}
+
 /* Table Styling */
 .appointments-table {
   width: 100%;
@@ -51,6 +55,13 @@ h2 {
 .appointments-table tr:hover {
   background-color: #444; /* Darker hover effect */
 }
+
+.active-tab {
+  background-color: #1976d2;
+  color: white;
+  font-weight: bold;
+}
+
 
 /* Navigation Bar Styling */
 .navbar {

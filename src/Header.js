@@ -115,8 +115,8 @@ const Header = ({ user, setUser }) => {
             <button className="header-button" onClick={() => navigate('/Contact_us')}>
               Contact Us
             </button>
-            <button className="header-button" onClick={() => navigate('/Rating')}>
-              Rating
+            <button className="header-button" onClick={() => navigate('/MyAppointments')}>
+              My Appointments
             </button>
             <button className="header-button logout" onClick={handleLogout}>
               Log Out
@@ -135,9 +135,6 @@ const Header = ({ user, setUser }) => {
             </button>
             <button className="header-button" onClick={() => navigate('/Contact_us')}>
               Contact Us
-            </button>
-            <button className="header-button" onClick={() => navigate('/Rating')}>
-              Rating
             </button>
             <button className="header-button" onClick={() => navigate('/Sign_up')}>
               Sign Up

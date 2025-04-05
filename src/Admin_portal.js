@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import './AdminPortal.css'; // Ensure CSS file is correctly imported
 import axios from 'axios';
 import emailjs from '@emailjs/browser';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { getDatabase, ref, remove, set } from 'firebase/database';
 import CustomAlert from './CustomAlert';
 import { auth } from './firebase';
@@ -151,6 +151,10 @@ const AdminPortal = () => {
       const userCredential = await createUserWithEmailAndPassword(auth, mechanic.email, mechanic.password);
       const user = userCredential.user;
 
+      await updateProfile(user, {
+        displayName: mechanic.name
+      });
+
       // Store mechanic in 'approvedMechanics' collection
       await set(ref(database, `approvedMechanics/${user.uid}`), {
         uid: user.uid,
@@ -162,11 +166,14 @@ const AdminPortal = () => {
         specialty: mechanic.specialty,
         experience: mechanic.experience,
         date: "",
-        ratings: "",
+        ratings: {
+          count: 0,
+          items: []
+        },
         appointments: "",
-        calendarLink: mechanic.calendarLink,
+        calendarLink: mechanic.calendarLink || null,
         address: mechanic.address,
-        calendarId: mechanic.calendarId
+        calendarId: mechanic.calendarId || null
       });
 
       // Remove from 'mechanics' collection after approval

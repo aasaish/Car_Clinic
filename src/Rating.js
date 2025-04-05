@@ -2,9 +2,17 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import CustomAlert from './CustomAlert';
 import './Rating.css';
+import { useParams } from 'react-router-dom';
+import { ref, push, update, get } from "firebase/database";
+import { database } from './firebase';
 
-const Rating = () => {
+const Rating = ({ user, setUser }) => {
+
+  const { email } = useParams();
+  const { aid } = useParams();
+
   const [formData, setFormData] = useState({
+    userEmail: user?.email,
     mechanicName: '',
     rating: '',
     comments: '',
@@ -16,26 +24,32 @@ const Rating = () => {
     onConfirm: () => { },
   });
 
-  const [mechanics, setMechanics] = useState([]); // Store approved mechanics
+  const [mechanic, setMechanic] = useState(null);
 
   // Firebase database URLs
   const mechanicsURL = "https://car-clinic-9cc74-default-rtdb.firebaseio.com/approvedMechanics.json";
-  const firebaseURL = "https://car-clinic-9cc74-default-rtdb.firebaseio.com/ratings.json";
+  // const firebaseURL = "https://car-clinic-9cc74-default-rtdb.firebaseio.com/ratings.json";
 
   useEffect(() => {
-    const fetchMechanics = async () => {
+    const fetchMechanic = async () => {
       try {
         const response = await axios.get(mechanicsURL);
         if (response.data) {
-          const approvedMechanics = Object.values(response.data);
-          setMechanics(approvedMechanics);
+          const mechanicsArray = Object.values(response.data);
+          const foundMechanic = mechanicsArray.find(mech => mech.email === email);
+          if (foundMechanic) {
+            setMechanic(foundMechanic);
+            setFormData(prevData => ({ ...prevData, mechanicName: foundMechanic.name }));
+          }
         }
       } catch (error) {
-        console.error("Error fetching mechanics:", error);
+        console.error("Error fetching mechanic:", error);
       }
     };
-    fetchMechanics();
-  }, []);
+
+    fetchMechanic();
+  }, [email]);
+
 
   // Handle input changes
   const handleChange = (e) => {
@@ -54,7 +68,7 @@ const Rating = () => {
     setAlert({ show: false, message: '', onConfirm: () => { } });
   };
 
-  // Handle form submission
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -64,87 +78,141 @@ const Rating = () => {
     }
 
     try {
-      await axios.post(firebaseURL, formData, {
-        headers: { 'Content-Type': 'application/json' },
-      });
+      const newRating = {
+        userEmail: user?.email,
+        mechanicName: formData.mechanicName,
+        rating: Number(formData.rating),
+        comments: formData.comments || '',
+        timestamp: new Date().toISOString()
+      };
 
-      showAlert("Your rating has been submitted successfully!");
+      // 1. Submit to ratings collection
+      const ratingsRef = ref(database, 'ratings');
+      await push(ratingsRef, newRating);
 
-      // Reset the form
-      setFormData({
-        mechanicName: '',
-        rating: '',
-        comments: '',
-      });
+      // 2. Add to approvedMechanics/[uid]/ratings/items[]
+      const mechanicsSnap = await get(ref(database, 'approvedMechanics'));
+      if (mechanicsSnap.exists()) {
+        const mechanicsData = mechanicsSnap.val();
+        const mechanicEntry = Object.entries(mechanicsData).find(
+          ([, value]) => value.email === email
+        );
 
-    } catch (error) {
-      console.error("Error submitting rating:", error);
-      showAlert("Failed to submit rating. Please try again.");
-    }
-  };
+        if (mechanicEntry) {
+          const [mechanicUid, mechanicData] = mechanicEntry;
+          const ratingsPath = `approvedMechanics/${mechanicUid}/ratings/items`;
+          const countPath = `approvedMechanics/${mechanicUid}/ratings/count`;
 
-  return (
-    <div className="rating-page">
-      <h2>Rate Your Mechanic</h2>
-      <form className="rating-form" onSubmit={handleSubmit}>
-        <label htmlFor="mechanicName">Mechanic Name:</label>
-        <select
-          id="mechanicName"
-          name="mechanicName"
-          value={formData.mechanicName}
-          onChange={handleChange}
-          required
-        >
-          <option value="">Select a mechanic</option>
-          {mechanics.map((mechanic, index) => (
-            <option key={index} value={mechanic.name}>
-              {mechanic.name}
-            </option>
-          ))}
-        </select>
+          // Add new rating item
+          await push(ref(database, ratingsPath), newRating);
 
-        <label htmlFor="rating">Rating (1-5):</label>
-        <select
-          id="rating"
-          name="rating"
-          value={formData.rating}
-          onChange={handleChange}
-          required
-        >
-          <option value="">Select rating</option>
-          <option value="1">1 - Poor</option>
-          <option value="2">2 - Fair</option>
-          <option value="3">3 - Good</option>
-          <option value="4">4 - Very Good</option>
-          <option value="5">5 - Excellent</option>
-        </select>
+          // Update count
+          const currentCount = mechanicData?.ratings?.count || 0;
+          await update(ref(database), {
+            [countPath]: currentCount + 1
+          });
+        }
+      }
 
-        <label htmlFor="comments">Comments:</label>
-        <textarea
-          id="comments"
-          name="comments"
-          value={formData.comments}
-          onChange={handleChange}
-          placeholder="Write your feedback here"
-        ></textarea>
+      // 3. Update rating in appointment (by aid param)
+      const appointmentsRef = ref(database, 'appointments');
+      const appointmentsSnap = await get(appointmentsRef);
 
-        <button type="submit">Submit Rating</button>
-      </form>
-      {alert.show && (
-        <CustomAlert
-          message={alert.message}
-          onConfirm={() => {
-            if (typeof alert.onConfirm === "function") {
-              alert.onConfirm(); // Execute the stored function
-            }
-            closeAlert(); // Close alert after confirmation
-          }}
-          onCancel={closeAlert}
-          buttonLabel="OK"
-        />
-      )}
-    </div>
-  );
-};
+      if (appointmentsSnap.exists()) {
+        const appointmentsData = appointmentsSnap.val();
 
-export default Rating;
+        // Find the correct appointment by `aid`
+        const appointmentNode = Object.entries(appointmentsData).find(
+          ([key, value]) => value.aid === aid
+        );
+
+        if (appointmentNode) {
+          const [appointmentKey] = appointmentNode;
+
+          // Now update the `rating` for the specific appointment
+          const appointmentRatingPath = `appointments/${appointmentKey}`;
+          await update(ref(database, appointmentRatingPath), {
+            rating: Number(formData.rating)
+          });
+
+          // Alert + reset form
+          showAlert("Your rating has been submitted successfully!");
+          setFormData({
+            mechanicName: mechanic?.name,
+            rating: '',
+            comments: ''
+          });
+        }else {
+            console.error("Appointment not found for given aid.");
+            showAlert("Appointment not found.");
+          }
+        }
+    
+
+        } catch (error) {
+          console.error("Error submitting rating:", error);
+          showAlert("Failed to submit rating. Please try again.");
+        }
+      };
+
+      if (!user) return <p>Loading user info...</p>;
+
+
+      return (
+        <div className="rating-page">
+          <h2>Rate Your Mechanic</h2>
+          <form className="rating-form" onSubmit={handleSubmit}>
+            <label htmlFor="mechanicName">Mechanic Name:</label>
+            <input
+              type="text"
+              id="mechanicName"
+              name="mechanicName"
+              value={formData.mechanicName}
+              disabled
+            />
+
+            <label htmlFor="rating">Rating (1-5):</label>
+            <select
+              id="rating"
+              name="rating"
+              value={formData.rating}
+              onChange={handleChange}
+              required
+            >
+              <option value="">Select rating</option>
+              <option value="1">1 - Poor</option>
+              <option value="2">2 - Fair</option>
+              <option value="3">3 - Good</option>
+              <option value="4">4 - Very Good</option>
+              <option value="5">5 - Excellent</option>
+            </select>
+
+            <label htmlFor="comments">Comments:</label>
+            <textarea
+              id="comments"
+              name="comments"
+              value={formData.comments}
+              onChange={handleChange}
+              placeholder="Write your feedback here"
+            ></textarea>
+
+            <button type="submit">Submit Rating</button>
+          </form>
+          {alert.show && (
+            <CustomAlert
+              message={alert.message}
+              onConfirm={() => {
+                if (typeof alert.onConfirm === "function") {
+                  alert.onConfirm(); // Execute the stored function
+                }
+                closeAlert(); // Close alert after confirmation
+              }}
+              onCancel={closeAlert}
+              buttonLabel="OK"
+            />
+          )}
+        </div>
+      );
+    };
+
+    export default Rating;

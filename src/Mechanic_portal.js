@@ -19,6 +19,7 @@ const MechanicPortal = ({ user, setUser }) => {
   const [currentDay, setCurrentDay] = useState(null);
   const [timeInputs, setTimeInputs] = useState({ openHour: "", closeHour: "" });
   const [calendarId, setCalendarId] = useState(null);
+  const [mechanicRatings, setMechanicRatings] = useState([]);
   const [alert, setAlert] = useState({
     show: false,
     message: '',
@@ -39,7 +40,48 @@ const MechanicPortal = ({ user, setUser }) => {
     }
   };
 
+  const handleSubmitAPI = async (e, calendarId) => {
+    e.preventDefault();
+    let newCalendarId = calendarId;
 
+    if (Object.keys(selectedDays).length === 0) {
+      console.log("Please select at least one day for availability.");
+      return;
+    }
+    const openHours = Object.keys(selectedDays).map((day) => ({
+      daysOfTheWeek: [parseInt(day)],
+      hours: [
+        {
+          openHour: selectedDays[day].openHour,
+          openMinute: 0,
+          closeHour: selectedDays[day].closeHour,
+          closeMinute: 0,
+        },
+      ],
+    }));
+    console.log("newCalendariD : " , newCalendarId);
+
+    const requestBody = {
+      openHours
+    };
+
+    try {
+      const response = await fetch(`https://services.leadconnectorhq.com/calendars/${newCalendarId}`, {
+        method: "PUT",
+        headers: {
+          Authorization: "Bearer pit-903330fa-f57e-44f6-be36-48f93ef7bbcb",
+          Version: "2021-04-15",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      const result = await response.json();
+      console.log("API Response:", result);
+    } catch (error) {
+      console.error("API Error:", error);
+    }
+  };
 
   const handleTimeChange = (field, value) => {
     setTimeInputs((prev) => ({ ...prev, [field]: value }));
@@ -89,19 +131,52 @@ const MechanicPortal = ({ user, setUser }) => {
   const LOCATION_ID = "mJbcKUu0vB4yx1ekaRZh";
 
   useEffect(() => {
-    // Get the currently signed-in user
     const auth = getAuth();
-    onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
-        setUserEmail(user.email); // Store the user's email
-        fetchAppointments(user.email); // Fetch only relevant appointments
+        setUserEmail(user.email);
+        fetchAppointments(user.email); // Initial fetch
         fetchMechanicCalendarId(user.email);
+        fetchMechanicRatings(user.email);
+  
+        // Set interval to refetch appointments and ratings every 3 seconds
+        const intervalId = setInterval(() => {
+          fetchAppointments(user.email);
+          fetchMechanicRatings(user.email);
+        }, 3000);
+  
+        // Clean up interval when user logs out or component unmounts
+        return () => clearInterval(intervalId);
       } else {
         setUserEmail(null);
         setAppointments([]);
+        setMechanicRatings([]);
       }
     });
+  
+    // Cleanup auth listener on unmount
+    return () => unsubscribe();
   }, []);
+  
+
+  const fetchMechanicRatings = async (email) => {
+    try {
+      const response = await axios.get(mechanicsURL); // Get all approved mechanics
+      const mechanics = response.data;
+      
+      // Find the mechanic based on email
+      const mechanic = Object.values(mechanics).find(mechanic => mechanic.email === email);
+      
+      if (mechanic && mechanic.ratings && mechanic.ratings.items) {
+        // Extract ratings from the mechanic's ratings.items
+        const ratingsArray = Object.values(mechanic.ratings.items);
+        setMechanicRatings(ratingsArray); // Store ratings in state
+      }
+    } catch (error) {
+      console.error("Error fetching mechanic ratings:", error);
+    }
+  };
+
 
 
   const fetchMechanicCalendarId = async (email) => {
@@ -138,7 +213,7 @@ const MechanicPortal = ({ user, setUser }) => {
 
         // Filter appointments for the logged-in mechanic
         const mechanicAppointments = appointmentsArray.filter(
-          (appointment) => appointment.mechanicEmail === user?.email
+          (appointment) => appointment.mechanicEmail === email
         );
 
         // Separate into pending and completed
@@ -325,10 +400,10 @@ const MechanicPortal = ({ user, setUser }) => {
     <div className="admin-portal">
 
       <div className="sidebar">
-        <button onClick={() => setActiveTable('pending')}>Pending</button>
-        <button onClick={() => setActiveTable('completed')}>Completed</button>
-        <button onClick={() => setActiveTable('availability')}>Availability</button>
-        <button onClick={() => setActiveTable('ratings')}>Ratings</button>
+        <button className={activeTable === 'pending' ? 'active-tab' : ''} onClick={() => setActiveTable('pending')}>Pending</button>
+        <button className={activeTable === 'completed' ? 'active-tab' : ''} onClick={() => setActiveTable('completed')}>Completed</button>
+        <button className={activeTable === 'availability' ? 'active-tab' : ''} onClick={() => setActiveTable('availability')}>Availability</button>
+        <button className={activeTable === 'ratings' ? 'active-tab' : ''} onClick={() => setActiveTable('ratings')}>Ratings</button>
       </div>
       <div className="table-container">
         {activeTable === 'pending' && (
@@ -346,7 +421,7 @@ const MechanicPortal = ({ user, setUser }) => {
               </tr>
             </thead>
             <tbody>
-              {appointments.pending.length > 0 ? (
+              {appointments?.pending?.length > 0 ? (
                 appointments.pending.map((appointment, index) => (
                   <tr key={appointment.id}>
                     <td>{appointment.name}</td>
@@ -388,11 +463,10 @@ const MechanicPortal = ({ user, setUser }) => {
                 <th>Address</th>
                 <th>Visit Preference</th>
                 <th>Selected Services</th>
-                <th>Details</th> {/* Updated Column */}
               </tr>
             </thead>
             <tbody>
-              {appointments.completed.length > 0 ? (
+              {appointments?.completed?.length > 0 ? (
                 appointments.completed.map((appointment, index) => (
                   <tr key={index}>
                     <td>{appointment.name}</td>
@@ -401,16 +475,60 @@ const MechanicPortal = ({ user, setUser }) => {
                     <td>{appointment.address}</td>
                     <td>{appointment.visitPreference}</td>
                     <td>{appointment.selectedServices}</td>
-                    <td>
-                      <Button variant="contained" color="primary" onClick={() => handleOpenDialog(appointment)}>
-                        Open Details
-                      </Button>
-                    </td>
+    
                   </tr>
                 ))
               ) : (
                 <tr>
                   <td colSpan="7">No appointments completed yet.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        )}
+        {activeTable === 'availability' && (
+        <div>
+            <h2>Select Available Days</h2>
+            {days.map((day) => (
+              <div key={day.value}>
+                <Checkbox checked={!!selectedDays[day.value]} onChange={() => handleCheckboxChange(day.value)} />
+                {day.label}
+                {selectedDays[day.value] && (
+                  <span> ({selectedDays[day.value].openHour}:00 - {selectedDays[day.value].closeHour}:00)</span>
+                )}
+              </div>
+            ))}
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={(e) => handleSubmitAPI(e, calendarId)}
+            >
+              Update Availability
+            </Button>
+          </div>
+        )}
+
+        {activeTable === 'ratings' && (
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Rating</th>
+                <th>Comments</th>
+              </tr>
+            </thead>
+            <tbody>
+            {mechanicRatings.length > 0 ? (
+                mechanicRatings.map((rating, index) => (
+                  <tr key={index}>
+                    <td>{rating.userEmail}</td>
+                    <td>{rating.rating}</td>
+                    <td>{rating.comments}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="3">No ratings available.</td>
                 </tr>
               )}
             </tbody>
@@ -438,58 +556,58 @@ const MechanicPortal = ({ user, setUser }) => {
             <Button
               variant="contained"
               color="primary"
-              >
+            >
               {/*onClick={(e) => handleSubmitAPI(e, calendarId)}*/}
               Update Availability
             </Button>
           )}
         </DialogActions>
-</Dialog>
-        {/* MUI Dialog for Appointment Details */}
-        <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
-          <DialogTitle>Select Open and Close Hours</DialogTitle>
-          <DialogContent>
-            <FormControl fullWidth margin="normal">
-              <InputLabel>Open Hour</InputLabel>
-              <Select value={timeInputs.openHour} onChange={(e) => handleTimeChange("openHour", e.target.value)}>
-                {[...Array(24).keys()].map((hour) => (
-                  <MenuItem key={hour} value={hour}>
-                    {hour}:00
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+      </Dialog>
+      {/* MUI Dialog for Appointment Details */}
+      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
+        <DialogTitle>Select Open and Close Hours</DialogTitle>
+        <DialogContent>
+          <FormControl fullWidth margin="normal">
+            <InputLabel>Open Hour</InputLabel>
+            <Select value={timeInputs.openHour} onChange={(e) => handleTimeChange("openHour", e.target.value)}>
+              {[...Array(24).keys()].map((hour) => (
+                <MenuItem key={hour} value={hour}>
+                  {hour}:00
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
 
-            <FormControl fullWidth margin="normal">
-              <InputLabel>Close Hour</InputLabel>
-              <Select value={timeInputs.closeHour} onChange={(e) => handleTimeChange("closeHour", e.target.value)}>
-                {[...Array(24).keys()].map((hour) => (
-                  <MenuItem key={hour} value={hour}>
-                    {hour}:00
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </DialogContent>
+          <FormControl fullWidth margin="normal">
+            <InputLabel>Close Hour</InputLabel>
+            <Select value={timeInputs.closeHour} onChange={(e) => handleTimeChange("closeHour", e.target.value)}>
+              {[...Array(24).keys()].map((hour) => (
+                <MenuItem key={hour} value={hour}>
+                  {hour}:00
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </DialogContent>
 
-          <DialogActions>
-            <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button
-              onClick={handleSubmitTime}
-              color="primary"
-              variant="contained"
-              disabled={
-                timeInputs.openHour === "" ||
-                timeInputs.closeHour === "" ||
-                timeInputs.openHour >= timeInputs.closeHour
-              }
-            >
-              Save
-            </Button>
-          </DialogActions>
-        </Dialog>
+        <DialogActions>
+          <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
+          <Button
+            onClick={handleSubmitTime}
+            color="primary"
+            variant="contained"
+            disabled={
+              timeInputs.openHour === "" ||
+              timeInputs.closeHour === "" ||
+              timeInputs.openHour >= timeInputs.closeHour
+            }
+          >
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
 
-    
+
     </div>
   );
 };
@@ -498,44 +616,3 @@ export default MechanicPortal;
 
 
 
-{/* 
-  <div>
-      
-      <h1>Mechanic Portal</h1>
-      <h2>Appointments</h2>
-      <table className="appointments-table">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Email</th>
-            <th>Mobile</th>
-            <th>Address</th>
-            <th>Visit Preference</th>
-            <th>Selected Services</th>
-            <th>Details</th> 
-            </tr>
-            </thead>
-            <tbody>
-              {appointments.length > 0 ? (
-                appointments.map((appointment, index) => (
-                  <tr key={index}>
-                    <td>{appointment.name}</td>
-                    <td>{appointment.email}</td>
-                    <td>{appointment.mobile}</td>
-                    <td>{appointment.address}</td>
-                    <td>{appointment.visitPreference}</td>
-                    <td>{appointment.selectedServices}</td>
-                    <td>
-                      <Button variant="contained" color="primary" onClick={() => handleOpenDialog(appointment)}>
-                        Open Details
-                      </Button>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="7">No appointments available.</td>
-                </tr>
-              )}
-            </tbody>
-          </table> */}

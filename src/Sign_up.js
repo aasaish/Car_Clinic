@@ -277,7 +277,7 @@ const SignUp = () => {
 
       console.log("User registered:", user);
       console.log("User name:", user.displayName);
-      // window.location.reload();
+      window.location.reload();
 
     } catch (error) {
       console.error('Error signing up:', error);
@@ -286,7 +286,7 @@ const SignUp = () => {
   };
 
   const handleMechanicSignUp = async (calendarLink, calendarId) => {
-    // Logic to handle mechanic sign-up with the form data (e.g., save to Firestore or Realtime Database)
+    // Logic to handle mechanic sign-up with the form data
     if (!paymentProof) {
       showAlert("Please upload payment proof!");
       return;

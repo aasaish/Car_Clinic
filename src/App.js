@@ -16,6 +16,7 @@ import Rating from './Rating';
 import { useEffect } from 'react';
 import { auth } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
+import MyAppointments from './MyAppointments';
 
 function App() {
 
@@ -36,7 +37,8 @@ useEffect(() => {
         <div className="content-container">
           <Routes>
             <Route path="/" element={<HomePage />} />
-            <Route path="/appointment" element={<Appointment />} />
+            <Route path="/appointment" element={<Appointment user={user} setUser={setUser} />} />
+            <Route path="/MyAppointments" element={<MyAppointments user={user} setUser={setUser}/>} />
             <Route path="/login" element={<Login />} />
             <Route path="/sign_up" element={<SignUp />} />
             <Route path="/contact_us" element={<ContactUs />} />
@@ -44,8 +46,8 @@ useEffect(() => {
             <Route path="/virtual_assistance" element={<VirtualAssistance />} />
             <Route path="/admin_portal" element={<AdminPortal />} />
             <Route path="/mechanic_portal" element={<MechanicPortal user={user} setUser={setUser} />} />
-            <Route path="/rating" element={<Rating />} />
-          </Routes>
+            <Route path="/rating/:email/:aid" element={<Rating user={user} setUser={setUser}/>} />
+            </Routes>
         </div>
         <Footer />
       </div>

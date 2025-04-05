@@ -5,26 +5,28 @@ import CustomAlert from './CustomAlert';
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import "./Appointment.css";
 
-const Appointment = () => {
+const Appointment = ({ user, setUser }) => {
   const [visitPreference, setVisitPreference] = useState([]);
   const [selectedOption, setSelectedOption] = useState([]);
   const [showCalendar, setShowCalendar] = useState(false);
   const [calendarUrl, setCalendarUrl] = useState("");
   const [formData, setFormData] = useState({
     name: "",
-    email: "",
+    email: user?.email,
     mobile: "",
     address: "",
     query: "",
     mechanic: "",
+    mechanicEmail: "",
     visitPreference: "",
     selectedServices: "",
     status: "pending",
+    rating: "",
     calendarLink: "",
   });
   const [isAuthenticated, setIsAuthenticated] = useState(false); // State to track authentication status
   const [mechanics, setMechanics] = useState([]);
-  const [filteredMechanics, setFilteredMechanics] = useState([]); 
+  const [filteredMechanics, setFilteredMechanics] = useState([]);
   const [alert, setAlert] = useState({
     show: false,
     message: '',
@@ -48,12 +50,29 @@ const Appointment = () => {
         const response = await axios.get(mechanicsURL);
         if (response.data) {
           const approvedMechanics = Object.values(response.data);
-          setMechanics(approvedMechanics);
+
+          // Calculate the average rating for each mechanic
+          const mechanicsWithAverageRatings = approvedMechanics.map((mechanic) => {
+            const ratings = mechanic.ratings ? Object.values(mechanic.ratings.items) : []; // Access ratings items array
+
+            const averageRating = ratings.length
+              ? ratings.reduce((sum, rating) => sum + (Number(rating.rating) || 0), 0) / ratings.length
+              : 0;
+
+            return {
+              ...mechanic,
+              averageRating: averageRating.toFixed(1), // Limit to 1 decimal place
+            };
+          });
+
+          setMechanics(mechanicsWithAverageRatings);
         }
       } catch (error) {
         console.error("Error fetching mechanics:", error);
       }
     };
+
+
     fetchMechanics();
   }, []);
 
@@ -83,7 +102,7 @@ const Appointment = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
+
     // If the selected field is 'mechanic', also update the calendar link
     if (name === "mechanic") {
       const selectedMechanic = mechanics.find((m) => m.name === value);
@@ -124,8 +143,11 @@ const Appointment = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    const randomAID = Math.floor(100000 + Math.random() * 900000);
+
     const updatedFormData = {
       ...formData,
+      aid: randomAID.toString(), // <-- Set aid here directly
       visitPreference: visitPreference.join(", "),
       mechanicEmail: formData.mechanicEmail,
     };
@@ -139,15 +161,16 @@ const Appointment = () => {
         setCalendarUrl(formData.calendarLink); // Show selected mechanic's calendar
         setShowCalendar(true);
       } else if (visitPreference.includes("Visit Me")) {
-        alert(
+        showAlert(
           "Your appointment request has been submitted. Our team will contact you shortly!"
         );
+        // window.location.reload();
         setShowCalendar(false);
       }
 
       setFormData({
         name: "",
-        email: "",
+        email: user?.email,
         mobile: "",
         address: "",
         query: "",
@@ -156,9 +179,11 @@ const Appointment = () => {
         selectedServices: "",
         mechanicEmail: "",
         status: "pending",
+        rating: null,
         calendarLink: "",
       });
       setVisitPreference([]);
+
     } catch (error) {
       console.error("Error adding appointment:", error);
     }
@@ -171,122 +196,123 @@ const Appointment = () => {
 
   return (
     <>
-    <div className="appointment-page">
-      <h1>Book Your Appointment</h1>
-      <form onSubmit={handleSubmit} className="appointment-form">
-        <div className="labels">
-          <label>Name:</label>
-          <input
-            type="text"
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            required
-          />
-        </div>
+      <div className="appointment-page">
+        <h1>Book Your Appointment</h1>
+        <form onSubmit={handleSubmit} className="appointment-form">
+          <div className="labels">
+            <label>Name:</label>
+            <input
+              type="text"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              required
+            />
+          </div>
 
-        <div className="labels">
-          <label>Email:</label>
-          <input
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            required
-          />
-        </div>
+          <div className="labels">
+            <label>Email:</label>
+            <input
+              type="email"
+              name="email"
+              placeholder={user.email}
+              value={formData.email}
+              required
+              disabled
+            />
+          </div>
 
 
-        <div className="labels">
-          <label>Mobile Number:</label>
-          <input
-            type="tel"
-            name="mobile"
-            value={formData.mobile}
-            onChange={handleChange}
-            required
-          />
-        </div>
+          <div className="labels">
+            <label>Mobile Number:</label>
+            <input
+              type="tel"
+              name="mobile"
+              value={formData.mobile}
+              onChange={handleChange}
+              required
+            />
+          </div>
 
-        <div className="labels">
-          <label>Address:</label>
-          <textarea
-            name="address"
-            value={formData.address}
-            onChange={handleChange}
-            required
-          ></textarea>
-        </div>
+          <div className="labels">
+            <label>Address:</label>
+            <textarea
+              name="address"
+              value={formData.address}
+              onChange={handleChange}
+              required
+            ></textarea>
+          </div>
 
-        <div className="labels">
-          <label>Query:</label>
-          <textarea
-            name="query"
-            value={formData.query}
-            onChange={handleChange}
-            required
-          ></textarea>
-        </div>
+          <div className="labels">
+            <label>Query:</label>
+            <textarea
+              name="query"
+              value={formData.query}
+              onChange={handleChange}
+              required
+            ></textarea>
+          </div>
 
-        <div className="labels">
-          <label>Select a Service</label>
-          <select
-            id="selectedServices"
-            name="selectedServices"
-            value={formData.selectedServices}
-            onChange={handleChange}
-            required
-          >
-            <option value="">Select a Service</option>
-            <option value="Mechanic">Mechanic</option>
-            <option value="Electrician">Electrician</option>
-            <option value="Dentor">Dentor</option>
-            <option value="Painter">Painter</option>
-          </select>
-        </div>
+          <div className="labels">
+            <label>Select a Service</label>
+            <select
+              id="selectedServices"
+              name="selectedServices"
+              value={formData.selectedServices}
+              onChange={handleChange}
+              required
+            >
+              <option value="">Select a Service</option>
+              <option value="Mechanic">Mechanic</option>
+              <option value="Electrician">Electrician</option>
+              <option value="Dentor">Dentor</option>
+              <option value="Painter">Painter</option>
+            </select>
+          </div>
 
-        {/* Select Mechanic (Disabled if No Service is Selected) */}
-        <div className="labels">
-          <label>Select Mechanic:</label>
-          <select
-            id="mechanic"
-            name="mechanic"
-            value={formData.mechanic}
-            onChange={handleChange}
-            required
-            disabled={!formData.selectedServices || filteredMechanics.length === 0}
-          >
-            <option value="">Select a mechanic</option>
-            {filteredMechanics.map((mechanic, index) => (
-              <option key={index} value={mechanic.name}>
-                {mechanic.name}
-              </option>
-            ))}
-          </select>
-        </div>
+          {/* Select Mechanic (Disabled if No Service is Selected) */}
+          <div className="labels">
+            <label>Select Mechanic:</label>
+            <select
+              id="mechanic"
+              name="mechanic"
+              value={formData.mechanic}
+              onChange={handleChange}
+              required
+              disabled={!formData.selectedServices || filteredMechanics.length === 0}
+            >
+              <option value="">Select a mechanic</option>
+              {filteredMechanics.map((mechanic, index) => (
+                <option key={index} value={mechanic.name}>
+                  {mechanic.name} - Rating: {mechanic.averageRating || "No rating yet"}/5.0
+                </option>
+              ))}
+            </select>
+          </div>
 
-        <div className="choices">
-          <div>
-            <label>Visit Preference:</label></div>
-          <div className="options">
+          <div className="choices">
             <div>
-              <input
-                type="checkbox"
-                value="Visit Me"
-                onChange={(e) => handleCheckboxChange(e, setVisitPreference)}
-              />
-              <span>Visit Me</span></div>
-            <div>
-              <input
-                type="checkbox"
-                value="I Will Visit"
-                onChange={(e) => handleCheckboxChange(e, setVisitPreference)}
-              />
-              <span>I Will Visit</span>
+              <label>Visit Preference:</label></div>
+            <div className="options">
+              <div>
+                <input
+                  type="checkbox"
+                  value="Visit Me"
+                  onChange={(e) => handleCheckboxChange(e, setVisitPreference)}
+                />
+                <span>Visit Me</span></div>
+              <div>
+                <input
+                  type="checkbox"
+                  value="I Will Visit"
+                  onChange={(e) => handleCheckboxChange(e, setVisitPreference)}
+                />
+                <span>I Will Visit</span>
+              </div>
             </div>
           </div>
-        </div>
-        {/* <div>
+          {/* <div>
           <label>Select an Option:</label>
           <div>
             {Object.keys(calendarURLs).map((option) => (
@@ -302,34 +328,35 @@ const Appointment = () => {
           </div>
         </div> */}
 
-        <div>
-          <button type="submit">Submit</button>
-        </div>
-      </form>
+          <div>
+            <button type="submit">Submit</button>
+          </div>
+        </form>
 
-      {showCalendar && (
-        <div>
-        <h3>Book Your Appointment</h3>
-        <iframe 
-          src={calendarUrl} 
-          style={{ width: "100%", height: "900px", border: "none", overflow: "hidden" }} 
-        ></iframe>
+        {showCalendar && (
+          <div>
+            <h3>Book Your Appointment</h3>
+            <h4><b>Note:</b>Your Email must be same as above otherwise your appointment will not book!</h4>
+            <iframe
+              src={calendarUrl}
+              style={{ width: "100%", height: "900px", border: "none", overflow: "hidden" }}
+            ></iframe>
+          </div>
+        )}
+        {alert.show && (
+          <CustomAlert
+            message={alert.message}
+            onConfirm={() => {
+              if (typeof alert.onConfirm === "function") {
+                alert.onConfirm(); // Execute the stored function
+              }
+              closeAlert(); // Close alert after confirmation
+            }}
+            onCancel={closeAlert}
+            buttonLabel="OK"
+          />
+        )}
       </div>
-      )}
-      {alert.show && (
-        <CustomAlert
-          message={alert.message}
-          onConfirm={() => {
-            if (typeof alert.onConfirm === "function") {
-              alert.onConfirm(); // Execute the stored function
-            }
-            closeAlert(); // Close alert after confirmation
-          }}
-          onCancel={closeAlert}
-          buttonLabel="OK"
-        />
-      )}
-    </div>
     </>
   );
 };
