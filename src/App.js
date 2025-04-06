@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, useNavigate } from 'react-router-dom';
 import './App.css';
 import Header from './Header';
 import Footer from './Footer';
@@ -15,43 +15,141 @@ import MechanicPortal from './Mechanic_portal';
 import Rating from './Rating';
 import { useEffect } from 'react';
 import { auth } from './firebase';
+import { getDatabase, ref, get } from "firebase/database";
 import { onAuthStateChanged } from 'firebase/auth';
 import MyAppointments from './MyAppointments';
+import { PublicRoute, AdminRoute, MechanicRoute, UserOnlyRoute } from './ProtectedRoutes';
 
 function App() {
 
   const [user, setUser] = useState(null);
+  const [isAdmin, setAdmin] = useState(false);
+  const [isMechanic, setIsMechanic] = useState(false);
+  const navigate = useNavigate();
 
-useEffect(() => {
-  const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-    setUser(currentUser); // Store user globally
-  });
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
 
-  return () => unsubscribe(); // Cleanup listener on unmount
-}, []);
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!user?.uid) {
+      setAdmin(false);
+      setIsMechanic(false);
+      return;
+    }
+
+    setAdmin(user.email === "admin@gmail.com");
+    checkIfMechanic(user.uid);
+  }, [user]);
+
+  const checkIfMechanic = async (uid) => {
+    try {
+      const db = getDatabase();
+      const dbRef = ref(db, "approvedMechanics/" + uid);
+      const snapshot = await get(dbRef);
+
+      if (snapshot.exists()) {
+        const userData = snapshot.val();
+        setIsMechanic(userData.role === "mechanic");
+      } else {
+        setIsMechanic(false);
+      }
+    } catch (error) {
+      setIsMechanic(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user && isAdmin) {
+      navigate('/admin_portal');
+    } else if (user && isMechanic) {
+      navigate('/mechanic_portal');
+    }
+  }, [user, isAdmin, isMechanic, navigate]);
+  
+
 
   return (
-    <Router>
-      <div className="App">
+    <div className="App">
       <Header user={user} setUser={setUser} />
-        <div className="content-container">
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/appointment" element={<Appointment user={user} setUser={setUser} />} />
-            <Route path="/MyAppointments" element={<MyAppointments user={user} setUser={setUser}/>} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/sign_up" element={<SignUp />} />
-            <Route path="/contact_us" element={<ContactUs />} />
-            <Route path="/about_us" element={<AboutUs />} />
-            <Route path="/virtual_assistance" element={<VirtualAssistance />} />
-            <Route path="/admin_portal" element={<AdminPortal />} />
-            <Route path="/mechanic_portal" element={<MechanicPortal user={user} setUser={setUser} />} />
-            <Route path="/rating/:email/:aid" element={<Rating user={user} setUser={setUser}/>} />
-            </Routes>
-        </div>
-        <Footer />
+      <div className="content-container">
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+
+          <Route
+            path="/appointment"
+            element={
+              <UserOnlyRoute user={user} isAdmin={isAdmin} isMechanic={isMechanic}>
+                <Appointment user={user} setUser={setUser} />
+              </UserOnlyRoute>
+            }
+          />
+
+          <Route
+            path="/MyAppointments"
+            element={
+              <UserOnlyRoute user={user} isAdmin={isAdmin} isMechanic={isMechanic}>
+                <MyAppointments user={user} setUser={setUser} />
+              </UserOnlyRoute>
+            }
+          />
+
+          <Route
+            path="/rating/:email/:aid"
+            element={
+              <UserOnlyRoute user={user}>
+                <Rating user={user} setUser={setUser} />
+              </UserOnlyRoute>
+            }
+          />
+
+          <Route
+            path="/login"
+            element={
+              <PublicRoute user={user}>
+                <Login />
+              </PublicRoute>
+            }
+          />
+
+          <Route
+            path="/sign_up"
+            element={
+              <PublicRoute user={user}>
+                <SignUp />
+              </PublicRoute>
+            }
+          />
+
+          <Route path="/contact_us" element={<ContactUs />} />
+          <Route path="/about_us" element={<AboutUs />} />
+          <Route path="/virtual_assistance" element={<VirtualAssistance />} />
+
+          <Route
+            path="/admin_portal"
+            element={
+              <AdminRoute user={user} isAdmin={isAdmin}>
+                <AdminPortal />
+              </AdminRoute>
+            }
+          />
+
+          <Route
+            path="/mechanic_portal"
+            element={
+              <MechanicRoute user={user} isMechanic={isMechanic}>
+                <MechanicPortal user={user} setUser={setUser} />
+              </MechanicRoute>
+            }
+          />
+        </Routes>
       </div>
-    </Router>
+      <Footer />
+    </div>
   );
 }
 

@@ -143,7 +143,7 @@ const MechanicPortal = ({ user, setUser }) => {
         const intervalId = setInterval(() => {
           fetchAppointments(user.email);
           fetchMechanicRatings(user.email);
-        }, 3000);
+        }, 10000);
   
         // Clean up interval when user logs out or component unmounts
         return () => clearInterval(intervalId);
