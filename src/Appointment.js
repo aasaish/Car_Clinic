@@ -50,12 +50,15 @@ const Appointment = ({ user, setUser }) => {
     const fetchMechanics = async () => {
       try {
         const response = await axios.get(mechanicsURL);
-        if (response.data) {
-          const approvedMechanics = Object.values(response.data);
+        if (response?.data) {
+          console.log("Fetched mechanics data:", response.data);
+
+          const approvedMechanics = Object.values(response?.data);
 
           // Calculate the average rating for each mechanic
           const mechanicsWithAverageRatings = approvedMechanics.map((mechanic) => {
-            const ratings = mechanic.ratings ? Object.values(mechanic.ratings.items) : []; // Access ratings items array
+            // const ratings = mechanic.ratings ? Object.values(mechanic.ratings.items) : [];
+            const ratings = mechanic.ratings ? Object.values(mechanic.ratings.items || {}) : [];
 
             const averageRating = ratings.length
               ? ratings.reduce((sum, rating) => sum + (Number(rating.rating) || 0), 0) / ratings.length
@@ -80,6 +83,8 @@ const Appointment = ({ user, setUser }) => {
 
   useEffect(() => {
     if (formData.selectedServices) {
+      console.log("mechanic",mechanics);
+      
       const filtered = mechanics.filter(
         (mechanic) => mechanic.specialty === formData.selectedServices
       );

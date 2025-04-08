@@ -408,7 +408,7 @@ const SignUp = () => {
         ) : (
           <div>
             <h2>Mechanic Signup</h2>
-            <form onSubmit={handleSubmit} className="signup-form">
+            <form onSubmit={handleSubmitAPI} className="signup-form">
               <table>
                 <tbody>
                   <tr><td><label>Name:</label></td><td><input type="text" value={name} onChange={(e) => setName(e.target.value)} required /></td></tr>
