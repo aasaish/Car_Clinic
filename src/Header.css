@@ -1,49 +1,94 @@
-/* src/Header.css */
-.App-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background-color: #030303; /* Dark grey background */
-    padding: 5px 10px; /* Reduced padding */
-    color: hsla(39, 100%, 32%, 0.249); /* White text */
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Slight shadow for depth */
-    height: 60px; /* Fixed height */
-    min-height: 50px; /* Optional: Ensures header isn't too small */
+nav{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+nav .title img{
+  margin-right: 30px;
+
+}
+nav .title{
+  font-size: 42px;
+  margin: 1rem ;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+ul{
+  padding-left: 5px;
+}
+nav ul{
+  display: flex;
+  align-items: center;
+  margin: 10px;
+  gap: 10px;
+}
+
+nav ul li{
+  list-style: none;
+  margin-top: 10px;
+}
+
+nav ul li a{
+  display: block;
+  text-decoration: none;
+  padding: 0.2rem;
+  margin: 0 0.5rem;
+}
+
+nav .menu{
+  display: none;
+  position: absolute;
+  top: 2rem;
+  right: 1.5rem;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 2.5rem;
+  height: 2rem;
+}
+
+nav .menu span{
+  height: 0.4rem;
+  width: 100%;
+  background-color: hsl(39, 70%, 25%);;
+  border-radius: 0.2rem;
+}
+
+
+
+@media screen and (max-width: 768px) {
+  nav .menu{
+      display: flex;
   }
-  
-  
-  .header-left {
-    display: flex;
-    align-items: center;
+  nav{
+      flex-direction: column;
+      align-items: start;
   }
-  .header-image {
-    height: 70px; /* Adjust the size as needed */
-    width: 70px; /* Ensure the width and height are the same for a circular logo */
-    margin-right: 10px;
-    border-radius: 30%; /* Makes the logo image round */
-    object-fit: cover; /* Ensures the image doesn't get distorted */
+  nav ul{
+      display: none;
+      flex-direction: column;
+      width: 100%;
+      margin-bottom: 0.25rem;
   }
-  
-  
-  .header-right {
-    display: flex;
-    gap: 15px; /* Space between buttons */
+  nav ul.open{
+      display: flex;
   }
-  
-  .header-button {
-    background: transparent;
-    color: rgb(0, 0, 0);
-    border: 2px solid white;
-    padding: 10px 15px;
-    border-radius: 5px;
-    font-size: 16px;
-    cursor: pointer;
-    transition: all 0.3s ease;
+  nav ul li{
+      width: 100%;
+      text-align: center;
   }
-  
-  .header-button:hover {
-    background-color: white;
-    color: #333; /* Dark text on hover */
-    border-color: #333;
+  ul{
+      padding-left: 0;
   }
+  nav ul li a{
+      margin: 0.2rem 0.2rem;
+  }
+ .SignUpButton,.LogOutButton{
+  margin-left: 0;
+ }
+}
+
   
+
+
+

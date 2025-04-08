@@ -1,4 +1,5 @@
 // src/Header.js
+import { NavLink } from "react-router-dom";
 import React, { useEffect } from 'react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -72,81 +73,117 @@ const Header = ({ user, setUser }) => {
     setShowConfirmation(false);
   };
 
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const handleNavLinkClick = () => {
+    setMenuOpen(false);
+  };
+
   return (
-    <header className="App-header">
-      <div className="header-left">
-        <img
-          src="/Logo.jpg" // Correct path to the image in the public folder
-          alt="Logo"
-          className="header-image"
-        />
+    <nav>
+      <img
+        src="/Logo.jpg" // Correct path to the image in the public folder
+        alt="Logo"
+        className="header-image"
+      />
+      <div
+        className="menu"
+        onClick={() => {
+          setMenuOpen(!menuOpen);
+        }}
+      >
+        <span></span>
+        <span></span>
+        <span></span>
       </div>
-      <div className="header-right">
+      <ul className={menuOpen ? "open" : ""}>
+      
+
 
         {admin ? (
           <>
+          <NavLink to="//Admin_portal" onClick={handleNavLinkClick}><li>
             <button className="header-button" onClick={() => navigate('/Admin_portal')}>
               Admin Panel
-            </button>
+            </button></li></NavLink>
+            <NavLink to="/" onClick={handleNavLinkClick}>
+            <li>
             <button className="header-button logout" onClick={handleLogout}>
               Log Out
-            </button>
+            </button></li></NavLink>
           </>
         ) : isMechanic ? (
           <>
+          <NavLink to="/Mechanic_portal" onClick={handleNavLinkClick}><li>
             <button className="header-button" onClick={() => navigate('/Mechanic_portal')}>
               Mechanic Panel
-            </button>
+            </button></li></NavLink>
+            <NavLink to="/" onClick={handleNavLinkClick}>
+            <li>
             <button className="header-button logout" onClick={handleLogout}>
               Log Out
-            </button>
+            </button></li></NavLink>
           </>
         ) : user ? (
           <>
+            <NavLink to="/" onClick={handleNavLinkClick}><li>
             <button className="header-button" onClick={() => navigate('/')}>
               Home
-            </button>
-            <button className="header-button" onClick={() => navigate('/About_us')}>
+            </button></li></NavLink>
+            <NavLink to="/About_us" onClick={handleNavLinkClick}>
+            <li><button className="header-button" onClick={() => navigate('/About_us')}>
               About
-            </button>
-            <button className="header-button" onClick={() => navigate('/Virtual_assistance')}>
+            </button></li></NavLink>
+            <NavLink to="/Virtual_assistance" onClick={handleNavLinkClick}>
+            <li><button className="header-button" onClick={() => navigate('/Virtual_assistance')}>
               Virtual Assistance
-            </button>
-            <button className="header-button" onClick={() => navigate('/Contact_us')}>
+            </button></li></NavLink>
+            <NavLink to="/Contact_us" onClick={handleNavLinkClick}>
+            <li><button className="header-button" onClick={() => navigate('/Contact_us')}>
               Contact Us
-            </button>
+            </button></li></NavLink>
+            <NavLink to="/MyAppointments" onClick={handleNavLinkClick}>
+            <li>
             <button className="header-button" onClick={() => navigate('/MyAppointments')}>
               My Appointments
-            </button>
+            </button></li></NavLink>
+            <NavLink to="/" onClick={handleNavLinkClick}>
+            <li>
             <button className="header-button logout" onClick={handleLogout}>
               Log Out
-            </button>
+            </button></li></NavLink>
           </>
         ) : (
           <>
+          <NavLink to="/" onClick={handleNavLinkClick}><li>
             <button className="header-button" onClick={() => navigate('/')}>
               Home
-            </button>
-            <button className="header-button" onClick={() => navigate('/About_us')}>
+            </button></li></NavLink>
+            <NavLink to="/About_us" onClick={handleNavLinkClick}>
+            <li><button className="header-button" onClick={() => navigate('/About_us')}>
               About
-            </button>
-            <button className="header-button" onClick={() => navigate('/Virtual_assistance')}>
+            </button></li></NavLink>
+            <NavLink to="/Virtual_assistance" onClick={handleNavLinkClick}>
+            <li><button className="header-button" onClick={() => navigate('/Virtual_assistance')}>
               Virtual Assistance
-            </button>
-            <button className="header-button" onClick={() => navigate('/Contact_us')}>
+            </button></li></NavLink>
+            <NavLink to="/Contact_us" onClick={handleNavLinkClick}>
+            <li><button className="header-button" onClick={() => navigate('/Contact_us')}>
               Contact Us
-            </button>
-            <button className="header-button" onClick={() => navigate('/Sign_up')}>
+            </button></li></NavLink>
+            <NavLink to="/Sign_up" onClick={handleNavLinkClick}>
+            <li><button className="header-button" onClick={() => navigate('/Sign_up')}>
               Sign Up
-            </button>
-            <button className="header-button" onClick={() => navigate('/Login')}>
+            </button></li></NavLink>
+            <NavLink to="/Login" onClick={handleNavLinkClick}>
+            <li><button className="header-button" onClick={() => navigate('/Login')}>
               Log In
-            </button>
+            </button></li></NavLink>
           </>
         )}
 
 
-      </div>
+      
       {showConfirmation && (
         <CustomAlert
           message="Are you sure you want to Logout?"
@@ -155,7 +192,8 @@ const Header = ({ user, setUser }) => {
           buttonLabel={"Confirm"}
         />
       )}
-    </header>
+      </ul>
+    </nav>
 
   );
 };

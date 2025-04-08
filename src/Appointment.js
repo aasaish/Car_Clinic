@@ -16,6 +16,8 @@ const Appointment = ({ user, setUser }) => {
     mobile: "",
     address: "",
     query: "",
+    carModel: "",
+    carNumberPlate: "",
     mechanic: "",
     mechanicEmail: "",
     visitPreference: "",
@@ -174,6 +176,8 @@ const Appointment = ({ user, setUser }) => {
         mobile: "",
         address: "",
         query: "",
+        carModel: "",
+        carNumberPlate: "",
         mechanic: "",
         visitPreference: "",
         selectedServices: "",
@@ -252,6 +256,30 @@ const Appointment = ({ user, setUser }) => {
               onChange={handleChange}
               required
             ></textarea>
+          </div>
+
+          <div className="labels">
+            <label>Car Model:</label>
+            <input
+              type="text"
+              name="carModel"
+              value={formData.carModel}
+              onChange={handleChange}
+              placeholder="e.g Honda Civic"
+              required
+            />
+          </div>
+
+          <div className="labels">
+            <label>Car Number Plate:</label>
+            <input
+              type="text"
+              name="carNumberPlate"
+              value={formData.carNumberPlate}
+              onChange={handleChange}
+              placeholder="e.g RIX9278"
+              required
+            />
           </div>
 
           <div className="labels">
