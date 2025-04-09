@@ -23,6 +23,8 @@ const MechanicPortal = ({ user, setUser }) => {
   const [timeInputs, setTimeInputs] = useState({ openHour: "", closeHour: "" });
   const [calendarId, setCalendarId] = useState(null);
   const [mechanicRatings, setMechanicRatings] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+
   const [alert, setAlert] = useState({
     show: false,
     message: '',
@@ -287,7 +289,8 @@ const MechanicPortal = ({ user, setUser }) => {
     return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}+05:00`;
   };
 
-  const moveAppointmentAfterOneHour = async (appointmentId, calendarId) => {
+  const moveAppointmentAfterOneHour = async (appointmentId, calendarId, depth = 0) => {
+    setIsLoading(true);
     try {
       const calendarResponse = await axios.get(`${firebaseDB}/calendarAppointments/${calendarId}.json`);
       if (!calendarResponse.data || !calendarResponse.data.appointments) {
@@ -303,6 +306,7 @@ const MechanicPortal = ({ user, setUser }) => {
         .reduce((latest, current) => {
           return new Date(current.startTime) > new Date(latest.startTime) ? current : latest;
         }, calendarAppointments[0]);
+      console.log("Latest Apppiutnemnt : ", latestAppointment);
 
       if (!latestAppointment) {
         console.error("Appointment not found in calendarAppointments.");
@@ -322,11 +326,16 @@ const MechanicPortal = ({ user, setUser }) => {
 
       if (conflictingAppointment) {
         console.log(`Conflicting appointment found at ${formattedNewStartTime}. Moving it first.`);
-        await moveAppointmentAfterOneHour(conflictingAppointment.appointmentId, calendarId);
+        await moveAppointmentAfterOneHour(conflictingAppointment.appointmentId, calendarId, depth + 1);
       }
 
       await updateAppointmentInGHLAndFirebase(appointmentId, calendarId, formattedNewStartTime, calendarAppointments);
       console.log(`Appointment ${appointmentId} moved to ${formattedNewStartTime}`);
+
+      if (depth === 0) {
+        setIsLoading(false);
+        window.location.reload();
+      }
 
     } catch (error) {
       console.error("Error moving appointment:", error);
@@ -394,10 +403,15 @@ const MechanicPortal = ({ user, setUser }) => {
           calendarAppointments[index].startTime = firebaseFormattedTime;
         }
 
-        await axios.put(`${firebaseDB}/calendarAppointments/${calendarId}.json`, {
-          calendarId,
-          appointments: calendarAppointments
-        });
+
+        if (index !== -1) {
+          await axios.patch(`${firebaseDB}/calendarAppointments/${calendarId}/appointments/${index}.json`, {
+            startTime: firebaseFormattedTime
+          });
+          console.log(`Patched appointment ${appointmentId} at index ${index} in calendarAppointments.`);
+        } else {
+          console.warn(`Appointment ${appointmentId} not found in calendarAppointments array.`);
+        }
 
         console.log(`Appointment ${appointmentId} successfully moved to ${firebaseFormattedTime}`);
       } else {
@@ -422,6 +436,21 @@ const MechanicPortal = ({ user, setUser }) => {
 
   return (
     <div className="admin-portal">
+
+      {isLoading && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(28, 21, 21, 0.8)',
+          zIndex: 9999,
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          pointerEvents: 'all',
+        }}>
+          <div style={{ fontSize: '2.5rem', fontWeight: 'bold' , color : "#6C4D13" }}>Processing appointments...</div>
+        </div>
+      )}
 
       <div className="sidebar">
         <button className={activeTable === 'pending' ? 'active-tab' : ''} onClick={() => setActiveTable('pending')}>Pending</button>
@@ -511,7 +540,7 @@ const MechanicPortal = ({ user, setUser }) => {
                 <th>Car Model</th>
                 <th>Visit Preference</th>
                 <th>Selected Services</th>
-                <th>Details</th> 
+                <th>Details</th>
               </tr>
             </thead>
             <tbody>
