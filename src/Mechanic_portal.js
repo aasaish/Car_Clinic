@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import dayjs from "dayjs";
 import "./Mechanic_portal.css";
+import CustomAlert from './CustomAlert';
+import ShowDetails from "./ShowDetails";
 import { Button, Checkbox, Dialog, DialogTitle, DialogContent, DialogActions, TextField, FormControl, Select, MenuItem, InputLabel } from "@mui/material";
 import { getAuth, onAuthStateChanged } from "firebase/auth"; // Import Firebase Auth
 
@@ -13,7 +15,8 @@ const MechanicPortal = ({ user, setUser }) => {
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [userEmail, setUserEmail] = useState(null);
-
+  const [showDetail, setShowDetail] = useState(false);
+  const [selectedAppointments, setSelectedAppointments] = useState(null);
   const [selectedDays, setSelectedDays] = useState({});
   const [dialogOpen, setDialogOpen] = useState(false);
   const [currentDay, setCurrentDay] = useState(null);
@@ -59,7 +62,7 @@ const MechanicPortal = ({ user, setUser }) => {
         },
       ],
     }));
-    console.log("newCalendariD : " , newCalendarId);
+    console.log("newCalendariD : ", newCalendarId);
 
     const requestBody = {
       openHours
@@ -78,6 +81,7 @@ const MechanicPortal = ({ user, setUser }) => {
 
       const result = await response.json();
       console.log("API Response:", result);
+      showAlert("Availability Updated Successfully!!!");
     } catch (error) {
       console.error("API Error:", error);
     }
@@ -105,6 +109,10 @@ const MechanicPortal = ({ user, setUser }) => {
     setAlert({ show: false, message: '', onConfirm: () => { } });
   };
 
+  const handleShowDetail = () => {
+    setShowDetail(false);
+    setSelectedAppointments(null);
+  };
 
   const days = [
     { label: "Sunday", value: 0 },
@@ -138,13 +146,13 @@ const MechanicPortal = ({ user, setUser }) => {
         fetchAppointments(user.email); // Initial fetch
         fetchMechanicCalendarId(user.email);
         fetchMechanicRatings(user.email);
-  
+
         // Set interval to refetch appointments and ratings every 3 seconds
         const intervalId = setInterval(() => {
           fetchAppointments(user.email);
           fetchMechanicRatings(user.email);
         }, 10000);
-  
+
         // Clean up interval when user logs out or component unmounts
         return () => clearInterval(intervalId);
       } else {
@@ -153,20 +161,20 @@ const MechanicPortal = ({ user, setUser }) => {
         setMechanicRatings([]);
       }
     });
-  
+
     // Cleanup auth listener on unmount
     return () => unsubscribe();
   }, []);
-  
+
 
   const fetchMechanicRatings = async (email) => {
     try {
       const response = await axios.get(mechanicsURL); // Get all approved mechanics
       const mechanics = response.data;
-      
+
       // Find the mechanic based on email
       const mechanic = Object.values(mechanics).find(mechanic => mechanic.email === email);
-      
+
       if (mechanic && mechanic.ratings && mechanic.ratings.items) {
         // Extract ratings from the mechanic's ratings.items
         const ratingsArray = Object.values(mechanic.ratings.items);
@@ -430,6 +438,7 @@ const MechanicPortal = ({ user, setUser }) => {
                 <th>Email</th>
                 <th>Mobile</th>
                 <th>Address</th>
+                <th>Car Model</th>
                 <th>Visit Preference</th>
                 <th>Selected Services</th>
                 <th>Details</th> {/* Updated Column */}
@@ -444,25 +453,47 @@ const MechanicPortal = ({ user, setUser }) => {
                     <td>{appointment.email}</td>
                     <td>{appointment.mobile}</td>
                     <td>{appointment.address}</td>
+                    <td>{appointment.carModel}</td>
                     <td>{appointment.visitPreference}</td>
                     <td>{appointment.selectedServices}</td>
                     <td>
-                      <Button variant="contained" color="primary" onClick={() => handleOpenDialog(appointment)}>
-                        Open Details
-                      </Button></td>
+                      {appointment.visitPreference === "I Will Visit" ? (
+                        <Button
+                          variant="contained"
+                          color="primary"
+                          onClick={() => handleOpenDialog(appointment)}
+                        >
+                          Open Details
+                        </Button>
+                      ) : appointment.visitPreference === "Visit Me" ? (
+                        <Button
+                          variant="contained"
+                          color="primary"
+                          onClick={() => {
+                            setSelectedAppointments(appointment);
+                            setShowDetail(true);
+                          }}
+                        >
+                          Open Details
+                        </Button>
+                      ) : (
+                        "-"
+                      )}
+                    </td>
+
                     <td>
-                      <Button variant="contained" color="success" onClick={() => updateAppointmentStatus(appointment.id)}>
+                      <Button variant="contained" color="success" onClick={() => updateAppointmentStatus(appointment.id)} style={{ marginLeft: "10px" }}>
                         Done
                       </Button>
-                      <Button variant="contained" color="error" onClick={() => deleteAppointment(appointment.id)} style={{ marginLeft: "4px" }}>
-                        X
+                      <Button variant="contained" color="error" onClick={() => deleteAppointment(appointment.id)} >
+                        Cancel
                       </Button>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan="8">No appointments available.</td>
+                  <td colSpan="9">No appointments available.</td>
                 </tr>
               )}
             </tbody>
@@ -477,8 +508,10 @@ const MechanicPortal = ({ user, setUser }) => {
                 <th>Email</th>
                 <th>Mobile</th>
                 <th>Address</th>
+                <th>Car Model</th>
                 <th>Visit Preference</th>
                 <th>Selected Services</th>
+                <th>Details</th> 
               </tr>
             </thead>
             <tbody>
@@ -489,21 +522,45 @@ const MechanicPortal = ({ user, setUser }) => {
                     <td>{appointment.email}</td>
                     <td>{appointment.mobile}</td>
                     <td>{appointment.address}</td>
+                    <td>{appointment.carModel}</td>
                     <td>{appointment.visitPreference}</td>
                     <td>{appointment.selectedServices}</td>
-    
+                    <td>
+                      {appointment.visitPreference === "I Will Visit" ? (
+                        <Button
+                          variant="contained"
+                          color="primary"
+                          onClick={() => handleOpenDialog(appointment)}
+                        >
+                          Open Details
+                        </Button>
+                      ) : appointment.visitPreference === "Visit Me" ? (
+                        <Button
+                          variant="contained"
+                          color="primary"
+                          onClick={() => {
+                            setSelectedAppointments(appointment);
+                            setShowDetail(true);
+                          }}
+                        >
+                          Open Details
+                        </Button>
+                      ) : (
+                        "-"
+                      )}
+                    </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan="7">No appointments completed yet.</td>
+                  <td colSpan="8">No appointments completed yet.</td>
                 </tr>
               )}
             </tbody>
           </table>
         )}
         {activeTable === 'availability' && (
-        <div>
+          <div>
             <h2>Select Available Days</h2>
             {days.map((day) => (
               <div key={day.value}>
@@ -534,7 +591,7 @@ const MechanicPortal = ({ user, setUser }) => {
               </tr>
             </thead>
             <tbody>
-            {mechanicRatings.length > 0 ? (
+              {mechanicRatings.length > 0 ? (
                 mechanicRatings.map((rating, index) => (
                   <tr key={index}>
                     <td>{rating.userEmail}</td>
@@ -622,6 +679,26 @@ const MechanicPortal = ({ user, setUser }) => {
           </Button>
         </DialogActions>
       </Dialog>
+      {alert.show && (
+        <CustomAlert
+          message={alert.message}
+          onConfirm={() => {
+            if (typeof alert.onConfirm === "function") {
+              alert.onConfirm(); // Execute the stored function
+            }
+            closeAlert(); // Close alert after confirmation
+          }}
+          onCancel={closeAlert}
+          buttonLabel="OK"
+        />
+      )}
+
+      {showDetail && selectedAppointments && (
+        <ShowDetails
+          appointment={selectedAppointments}
+          onConfirm={handleShowDetail}
+        />
+      )}
 
 
     </div>
