@@ -26,6 +26,12 @@ const Appointment = ({ user, setUser }) => {
     rating: "",
     calendarLink: "",
   });
+  const [afterFormData, setAfterFormData] = useState({
+    carModel: "",
+    carNumberPlate: "",
+    selectedServices: "",
+    mechanic: "",
+  });
   const [isAuthenticated, setIsAuthenticated] = useState(false); // State to track authentication status
   const [mechanics, setMechanics] = useState([]);
   const [filteredMechanics, setFilteredMechanics] = useState([]);
@@ -83,8 +89,8 @@ const Appointment = ({ user, setUser }) => {
 
   useEffect(() => {
     if (formData.selectedServices) {
-      console.log("mechanic",mechanics);
-      
+      console.log("mechanic", mechanics);
+
       const filtered = mechanics.filter(
         (mechanic) => mechanic.specialty === formData.selectedServices
       );
@@ -174,6 +180,13 @@ const Appointment = ({ user, setUser }) => {
         // window.location.reload();
         setShowCalendar(false);
       }
+
+      setAfterFormData({
+        carModel: formData.carModel,
+        carNumberPlate: formData.carNumberPlate,
+        selectedServices: formData.selectedServices,
+        mechanic: formData.mechanic
+      })
 
       setFormData({
         name: "",
@@ -370,6 +383,10 @@ const Appointment = ({ user, setUser }) => {
           <div>
             <h3>Book Your Appointment</h3>
             <h4><b>Note:</b>Your Email must be same as above otherwise your appointment will not book!</h4>
+
+            <h5>You are booking appointment for car whose model is {afterFormData.carModel} and the car number plate is {afterFormData.carNumberPlate}</h5>
+            <b />
+            <h5>And this appointment booking request is for {afterFormData.selectedServices} and {afterFormData.mechanic} will provide you services!!!</h5>
             <iframe
               src={calendarUrl}
               style={{ width: "100%", height: "900px", border: "none", overflow: "hidden" }}

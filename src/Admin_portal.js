@@ -5,6 +5,7 @@ import emailjs from '@emailjs/browser';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { getDatabase, ref, remove, set } from 'firebase/database';
 import CustomAlert from './CustomAlert';
+import ConfirmAlert from './ConfirmAlert';
 import { auth } from './firebase';
 
 
@@ -16,6 +17,9 @@ const AdminPortal = () => {
   const [ratingsData, setRatingsData] = useState([]);
   const [usersData, setUsersData] = useState([]);
   const [mechanicsData, setMechanicsData] = useState([]);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [showAdminConfirmation, setShowAdminConfirmation] = useState(false);
+  const [setterId, setSetterId] = useState("");
   const [alert, setAlert] = useState({
     show: false,
     message: '',
@@ -30,7 +34,7 @@ const AdminPortal = () => {
   // Fetch users from backend
   const fetchUsersData = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/getUsers"); // Backend API
+      const response = await axios.get("https://car-clinic-backend.onrender.com/getUsers"); // Backend API
       setUsersData(response.data);
 
     } catch (error) {
@@ -130,14 +134,25 @@ const AdminPortal = () => {
   };
 
   const handleRemoveUser = async (uid) => {
+    setShowAdminConfirmation(true);
+    setSetterId(uid)
+  };
+
+  const handleAdminConfirm = async () => {
     try {
-      await axios.delete(`http://localhost:5000/deleteUser/${uid}`);
+      await axios.delete(`https://car-clinic-backend.onrender.com/deleteUser/${setterId}`);
       showAlert("User removed successfully.");
       fetchUsersData(); // Refresh user list
+      setSetterId("")
+      setShowAdminConfirmation(false);
     } catch (error) {
       console.error("Error removing user:", error);
       showAlert("Failed to remove user.");
     }
+  };
+
+  const handleAdminCancel = () => {
+    setShowAdminConfirmation(false);
   };
 
 
@@ -205,13 +220,24 @@ const AdminPortal = () => {
   };
 
   const handleRemove = async (id) => {
+    setShowConfirmation(true);
+    setSetterId(id)
+  };
+
+  const handleConfirm = async () => {
     try {
-      await axios.delete(`https://car-clinic-9cc74-default-rtdb.firebaseio.com/approvedMechanics/${id}.json`);
+      await axios.delete(`https://car-clinic-9cc74-default-rtdb.firebaseio.com/approvedMechanics/${setterId}.json`);
       showAlert('Mechanic is removed.');
       fetchMechanicsData(); // Refresh data
+      setSetterId("")
+      setShowConfirmation(false);
     } catch (error) {
       console.error('Error removing mechanic:', error);
     }
+  };
+
+  const handleCancel = () => {
+    setShowConfirmation(false);
   };
 
 
@@ -350,6 +376,18 @@ const AdminPortal = () => {
           }}
           onCancel={closeAlert}
           buttonLabel="OK"
+        />
+      )}
+      {showAdminConfirmation && (
+        <ConfirmAlert
+          onConfirm={handleAdminConfirm}
+          onCancel={handleAdminCancel}
+        />
+      )}
+      {showConfirmation && (
+        <ConfirmAlert
+          onConfirm={handleConfirm}
+          onCancel={handleCancel}
         />
       )}
     </div>

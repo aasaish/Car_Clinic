@@ -616,6 +616,11 @@ const MechanicPortal = ({ user, setUser }) => {
             <>
               <p><strong>Appointment ID:</strong> {selectedAppointment.appointmentId || "N/A"}</p>
               <p><strong>Visit Preference:</strong> {selectedAppointment.visitPreference || "N/A"}</p>
+              <p><strong>Car Model:</strong> {selectedAppointment.carModel || "N/A"}</p>
+              <p><strong>Car Number Plate:</strong> {selectedAppointment.carNumberPlate || "N/A"}</p>
+              <p><strong>Selected Services:</strong> {selectedAppointment.selectedServices || "N/A"}</p>
+              <p><strong>Mechanic Name:</strong> {selectedAppointment.mechanicName || "N/A"}</p>
+
               <p>
                 <strong>Start Time:</strong>
                 {selectedAppointment.startTime ? dayjs(selectedAppointment.startTime).format("MMMM D, YYYY [at] hA") : "Not Set"}
