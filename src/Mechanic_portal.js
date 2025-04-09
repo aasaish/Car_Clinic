@@ -280,108 +280,124 @@ const MechanicPortal = ({ user, setUser }) => {
   };
 
   const moveAppointmentAfterOneHour = async (appointmentId, calendarId) => {
-    // try {
-    //   const calendarResponse = await axios.get(`${firebaseDB}/calendarAppointments/${calendarId}.json`);
-    //   if (!calendarResponse.data || !calendarResponse.data.appointments) {
-    //     console.error(`No appointments found for calendarId: ${calendarId}`);
-    //     return;
-    //   }
+    try {
+      const calendarResponse = await axios.get(`${firebaseDB}/calendarAppointments/${calendarId}.json`);
+      if (!calendarResponse.data || !calendarResponse.data.appointments) {
+        console.error(`No appointments found for calendarId: ${calendarId}`);
+        return;
+      }
 
-    //   let calendarAppointments = calendarResponse.data.appointments.filter(app => app !== null);
-    //   console.log("Filtered calendar data:", calendarAppointments);
+      let calendarAppointments = calendarResponse.data.appointments.filter(app => app !== null);
+      console.log("Filtered calendar data:", calendarAppointments);
 
-    //   let latestAppointment = calendarAppointments
-    //     .filter(app => app.appointmentId === appointmentId)
-    //     .reduce((latest, current) => {
-    //       return new Date(current.startTime) > new Date(latest.startTime) ? current : latest;
-    //     }, calendarAppointments[0]);
+      let latestAppointment = calendarAppointments
+        .filter(app => app.appointmentId === appointmentId)
+        .reduce((latest, current) => {
+          return new Date(current.startTime) > new Date(latest.startTime) ? current : latest;
+        }, calendarAppointments[0]);
 
-    //   if (!latestAppointment) {
-    //     console.error("Appointment not found in calendarAppointments.");
-    //     return;
-    //   }
+      if (!latestAppointment) {
+        console.error("Appointment not found in calendarAppointments.");
+        return;
+      }
 
-    //   // Calculate the new startTime (+1 hour)
-    //   let newStartTime = new Date(targetAppointment.startTime);
-    //   newStartTime.setHours(newStartTime.getHours() + 1);
-    //   newStartTime = newStartTime.toISOString(); // Convert to string format
+      let newStartTime = new Date(latestAppointment.startTime);
+      newStartTime.setHours(newStartTime.getHours() + 1);
+      const formattedNewStartTime = formatDateWithOffset(newStartTime, 5);
 
-    //   // Find all appointments that need to be moved
-    //   let appointmentsToUpdate = [];
-    //   for (let i = calendarAppointments.length - 1; i >= 0; i--) {
-    //     if (new Date(calendarAppointments[i].startTime) >= new Date(targetAppointment.startTime)) {
-    //       let updatedTime = new Date(calendarAppointments[i].startTime);
-    //       updatedTime.setHours(updatedTime.getHours() + 1);
-    //       appointmentsToUpdate.push({
-    //         appointmentId: calendarAppointments[i].appointmentId,
-    //         newStartTime: updatedTime.toISOString(),
-    //       });
-    //     }
-    //   }
+      console.log("Latest appointment:", latestAppointment);
+      console.log("Formatted new start time:", formattedNewStartTime);
 
-    //   // ✅ Update GHL API for each affected appointment
-    //   for (let appointment of appointmentsToUpdate) {
-    //     try {
-    //       const ghlResponse = await axios.put(
-    //         `https://services.leadconnectorhq.com/calendars/events/appointments/${appointment.appointmentId}`,
-    //         {
-    //           calendarId: calendarId,
-    //           startTime: appointment.newStartTime,
-    //           locationId: "mJbcKUu0vB4yx1ekaRZh",
-    //           ignoreFreeSlotValidation: true
-    //         },
-    //         {
-    //           headers: {
-    //             Authorization: "Bearer pit-903330fa-f57e-44f6-be36-48f93ef7bbcb",
-    //             Version: "2021-04-15"
-    //           }
-    //         }
-    //       );
+      let conflictingAppointment = calendarAppointments.find(
+        app => new Date(app.startTime).getTime() === newStartTime.getTime()
+      );
 
-    //       // If GHL API response is OK, update Firebase
-    //       if (ghlResponse.status === 200) {
-    //         //emails sent
-    //         // ✅ Update `appointments` collection correctly
-    //         const allAppointmentsResponse = await axios.get(`${firebaseDB}/appointments.json`);
-    //         const allAppointments = allAppointmentsResponse.data;
+      if (conflictingAppointment) {
+        console.log(`Conflicting appointment found at ${formattedNewStartTime}. Moving it first.`);
+        await moveAppointmentAfterOneHour(conflictingAppointment.appointmentId, calendarId);
+      }
 
-    //         // Find the correct key in the appointments collection
-    //         let appointmentKey = Object.keys(allAppointments).find(
-    //           key => allAppointments[key].appointmentId === appointment.appointmentId
-    //         );
+      await updateAppointmentInGHLAndFirebase(appointmentId, calendarId, formattedNewStartTime, calendarAppointments);
+      console.log(`Appointment ${appointmentId} moved to ${formattedNewStartTime}`);
 
-    //         if (appointmentKey) {
-    //           await axios.patch(`${firebaseDB}/appointments/${appointmentKey}.json`, {
-    //             startTime: appointment.newStartTime
-    //           });
-    //         } else {
-    //           console.error(`Appointment ${appointment.appointmentId} not found in appointments collection.`);
-    //         }
+    } catch (error) {
+      console.error("Error moving appointment:", error);
+    }
+  };
 
-    //         // ✅ Update `calendarAppointments` collection
-    //         const updatedAppointments = calendarAppointments.map(app => {
-    //           if (app.appointmentId === appointment.appointmentId) {
-    //             return { ...app, startTime: appointment.newStartTime };
-    //           }
-    //           return app;
-    //         });
+  const formatDateWithOffset = (date, offsetHours) => {
+    const pad = num => String(num).padStart(2, '0');
 
-    //         await axios.put(`${firebaseDB}/calendarAppointments/${calendarId}.json`, {
-    //           calendarId,
-    //           appointments: updatedAppointments
-    //         });
+    const year = date.getFullYear();
+    const month = pad(date.getMonth() + 1);
+    const day = pad(date.getDate());
+    const hours = pad(date.getHours());
+    const minutes = pad(date.getMinutes());
+    const seconds = pad(date.getSeconds());
 
-    //         console.log(`Appointment ${appointment.appointmentId} successfully moved to ${appointment.newStartTime}`);
-    //       } else {
-    //         console.error(`Failed to update appointment ${appointment.appointmentId} in GHL`);
-    //       }
-    //     } catch (ghlError) {
-    //       console.error(`Error updating appointment ${appointment.appointmentId} in GHL:`, ghlError);
-    //     }
-    //   }
-    // } catch (error) {
-    //   console.error("Error moving appointment:", error);
-    // }
+    const offsetSign = offsetHours >= 0 ? "+" : "-";
+    const absOffsetHours = Math.abs(offsetHours);
+    const offsetFormatted = `${offsetSign}${pad(absOffsetHours)}:00`;
+
+    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${offsetFormatted}`;
+  };
+
+  const updateAppointmentInGHLAndFirebase = async (appointmentId, calendarId, newStartTime, calendarAppointments) => {
+    try {
+      const ghlResponse = await axios.put(
+        `https://services.leadconnectorhq.com/calendars/events/appointments/${appointmentId}`,
+        {
+          calendarId: calendarId,
+          startTime: newStartTime,
+          locationId: "mJbcKUu0vB4yx1ekaRZh",
+          ignoreFreeSlotValidation: true,
+          assignedUserId: "1rNy8XU4Da0GgwdxdxVS"
+        },
+        {
+          headers: {
+            Authorization: "Bearer pit-903330fa-f57e-44f6-be36-48f93ef7bbcb",
+            Version: "2021-04-15"
+          }
+        }
+      );
+
+      if (ghlResponse.status === 200) {
+        console.log(`GHL updated appointment ${appointmentId} to ${newStartTime}`);
+
+        // ✅ Convert back to Firebase format (YYYY-MM-DDTHH:mm:ss)
+        const firebaseFormattedTime = newStartTime.split("+")[0];
+
+        const allAppointmentsResponse = await axios.get(`${firebaseDB}/appointments.json`);
+        const allAppointments = allAppointmentsResponse.data;
+
+        let appointmentKey = Object.keys(allAppointments).find(
+          key => allAppointments[key].appointmentId === appointmentId
+        );
+
+        if (appointmentKey) {
+          await axios.patch(`${firebaseDB}/appointments/${appointmentKey}.json`, { startTime: firebaseFormattedTime });
+        } else {
+          console.error(`Appointment ${appointmentId} not found in appointments collection.`);
+        }
+
+        // ✅ Update only the latest appointment in `calendarAppointments`
+        let index = calendarAppointments.findIndex(app => app.appointmentId === appointmentId);
+        if (index !== -1) {
+          calendarAppointments[index].startTime = firebaseFormattedTime;
+        }
+
+        await axios.put(`${firebaseDB}/calendarAppointments/${calendarId}.json`, {
+          calendarId,
+          appointments: calendarAppointments
+        });
+
+        console.log(`Appointment ${appointmentId} successfully moved to ${firebaseFormattedTime}`);
+      } else {
+        console.error(`Failed to update appointment ${appointmentId} in GHL`);
+      }
+    } catch (ghlError) {
+      console.error(`Error updating appointment ${appointmentId} in GHL:`, ghlError);
+    }
   };
 
   // Function to open dialog with appointment details
@@ -556,8 +572,8 @@ const MechanicPortal = ({ user, setUser }) => {
             <Button
               variant="contained"
               color="primary"
+              onClick={() => moveAppointmentAfterOneHour(selectedAppointment.appointmentId, selectedAppointment.calendarId)}
             >
-              {/*onClick={(e) => handleSubmitAPI(e, calendarId)}*/}
               Update Availability
             </Button>
           )}
