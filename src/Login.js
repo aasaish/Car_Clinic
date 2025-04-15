@@ -8,7 +8,6 @@ import { auth } from './firebase';
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('');
   const [alert, setAlert] = useState({
     show: false,
     message: '',
@@ -28,25 +27,10 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Ensure role is selected before attempting login
-    if (!role) {
-      showAlert('Please select a role (User or Mechanic) before logging in.');
-      return;
-    }
-
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email.toLowerCase(), password);
-      console.log(`${role} logged in with Email: ${email}`);
-      showAlert(`${role.charAt(0).toUpperCase() + role.slice(1)} logged in successfully`);
+      showAlert(`${userCredential.name} logged in successfully`);
 
-      // Role-based redirection
-      if (role === 'user' && email === 'admin@gmail.com') {
-        navigate('/Admin_portal');
-      } else if (role === 'user') {
-        navigate('/');
-      } else if (role === 'mechanic') {
-        navigate('/mechanic_portal');
-      }
     } catch (error) {
       console.error('Error signing in:', error.code, error.message);
       handleAuthError(error);
@@ -71,15 +55,8 @@ const Login = () => {
     }
   };
 
-  const handleRoleChange = (selectedRole) => {
-    setRole(selectedRole);
-  };
 
   const handleGoogleSignIn = async () => {
-    if (role !== 'user') {
-      showAlert('Only users can log in with Google');
-      return;
-    }
 
     const provider = new GoogleAuthProvider();
     try {
@@ -97,24 +74,6 @@ const Login = () => {
     <div className="login-container">
       <h1>Login</h1>
       <form onSubmit={handleSubmit} className="login-form">
-        <div className="form-group role-selection">
-          <div className="role-buttons">
-            <button
-              type="button"
-              className={`role-btn ${role === 'user' ? 'active' : ''}`}
-              onClick={() => handleRoleChange('user')}
-            >
-              User
-            </button>
-            <button
-              type="button"
-              className={`role-btn ${role === 'mechanic' ? 'active' : ''}`}
-              onClick={() => handleRoleChange('mechanic')}
-            >
-              Mechanic
-            </button>
-          </div>
-        </div>
 
         <div className="form-group">
           <label>Email:</label>
@@ -138,15 +97,11 @@ const Login = () => {
           />
         </div>
 
-
-
-        {role === 'user' && (
           <div className="form-group">
             <button type="button" className="login-btn google-btn" onClick={handleGoogleSignIn}>
               Sign in with Google
             </button>
           </div>
-        )}
 
         <div className="form-group">
           <button type="submit" className="login-btn">

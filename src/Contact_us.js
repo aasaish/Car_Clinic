@@ -1,10 +1,9 @@
 // src/ContactUs.js
 import React, { useState } from "react";
-// import { db } from "./firebase";
-// import { collection, addDoc } from "firebase/firestore";
 import './ContactUs.css';  // Ensure the CSS is correctly imported
 import CustomAlert from './CustomAlert';
 import axios from "axios";
+import emailjs from '@emailjs/browser';
 
 
 const ContactUs = () => {
@@ -12,11 +11,31 @@ const ContactUs = () => {
     name: "",
     email: "",
     phone: "",
+    complaint:"",
     message: "",
   });
   const [showConfirmation, setShowConfirmation] = useState(false);
 
   const firebaseURL = "https://car-clinic-9cc74-default-rtdb.firebaseio.com/contact_us.json";
+
+  const sendApprovalEmail = async (email, messagebody) => {
+    const templateParams = {
+      to_email: email,
+      message: messagebody,
+    };
+
+    try {
+      await emailjs.send(
+        'service_8kgv9m8',     // Replace with your Email.js service ID
+        'template_bpruqj9',    // Replace with your Email.js template ID
+        templateParams,
+        'YXs-aMceIqko1PuHu'      // Replace with your Email.js public key
+      );
+      console.log('Approval email sent successfully');
+    } catch (error) {
+      console.error('Error sending email:', error);
+    }
+  };
 
   const handleChange = async (e) => {
     setFormData({
@@ -35,7 +54,10 @@ const ContactUs = () => {
     } catch (error) {
       console.error("Error adding item:", error);
     }
-    setFormData({ name: "", email: "", phone: "", message: "" });
+    const adminMessage = `Dear Admin of Car Clinic, you have got a new complaint from one of the customer. Please go to your Admin Portal and proceed accordingly.`
+    const adminEmail = "malikmani156.mm@gmail.com"
+    await sendApprovalEmail(adminEmail, adminMessage);
+    setFormData({ name: "", email: "", phone: "", complaint: "", message: "" });
     setShowConfirmation(true);
   };
 
@@ -70,12 +92,21 @@ const ContactUs = () => {
         <div className="form-group">
           <label htmlFor="phone">Phone:</label>
           <input
-            type="tel"
+            type="number"
             name="phone"
             value={formData.phone}
             onChange={handleChange}
             required
           />
+        </div>
+        <div className="form-group">
+          <label htmlFor="complaint">Complaint:</label>
+          <input
+            name="complaint"
+            value={formData.complaint}
+            onChange={handleChange}
+            required
+          ></input>
         </div>
         <div className="form-group">
           <label htmlFor="message">Message:</label>

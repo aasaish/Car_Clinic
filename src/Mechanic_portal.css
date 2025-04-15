@@ -25,7 +25,7 @@ h2 {
 }
 
 .table{
-  min-height: 40vh;
+  min-height: 30vh;
 }
 
 /* Table Styling */
@@ -62,6 +62,13 @@ h2 {
   font-weight: bold;
 }
 
+.revenue{
+display: flex;
+flex-direction: column;
+height: 80%;
+justify-content: center;
+align-items: center;
+}
 
 /* Navigation Bar Styling */
 .navbar {

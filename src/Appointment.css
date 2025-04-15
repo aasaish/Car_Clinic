@@ -60,7 +60,7 @@ h1 {
 
 .appointment-form input[type="text"],
 .appointment-form input[type="email"],
-.appointment-form input[type="tel"],
+.appointment-form input[type="number"],
 .appointment-form textarea,
 .appointment-form select{
   width: 100%;
@@ -116,7 +116,7 @@ h1 {
   flex-direction: column;
 }
 
-.appointment-form .checkbox-group input[type="checkbox"] {
+.appointment-form .checkbox-group input[type="radio"] {
   margin-right: 10px;
 }
 

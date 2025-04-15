@@ -2,12 +2,9 @@ import React, { useEffect, useState } from 'react';
 import './AdminPortal.css'; // Ensure CSS file is correctly imported
 import axios from 'axios';
 import emailjs from '@emailjs/browser';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { getDatabase, ref, remove, set } from 'firebase/database';
+import { getDatabase, ref, remove } from 'firebase/database';
 import CustomAlert from './CustomAlert';
 import ConfirmAlert from './ConfirmAlert';
-import { auth } from './firebase';
-
 
 const AdminPortal = () => {
   const database = getDatabase();
@@ -17,8 +14,12 @@ const AdminPortal = () => {
   const [ratingsData, setRatingsData] = useState([]);
   const [usersData, setUsersData] = useState([]);
   const [mechanicsData, setMechanicsData] = useState([]);
+  const [selectedMechanic, setSelectedMechanic] = useState(null);
+  const [selectedMechanicID, setSelectedMechanicID] = useState("");
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [showAdminConfirmation, setShowAdminConfirmation] = useState(false);
+  const [showConfirmationBox, setShowConfirmationBox] = useState(false);
+  const [showRejectionBox, setShowRejectionBox] = useState(false);
   const [setterId, setSetterId] = useState("");
   const [alert, setAlert] = useState({
     show: false,
@@ -36,7 +37,6 @@ const AdminPortal = () => {
     try {
       const response = await axios.get("https://car-clinic-backend.onrender.com/getUsers"); // Backend API
       setUsersData(response.data);
-
     } catch (error) {
       console.error("Error fetching users:", error);
     }
@@ -48,7 +48,6 @@ const AdminPortal = () => {
     try {
       // Fetch pending mechanics
       const mechanicsResponse = await axios.get(mechanicsFirebaseURL);
-      console.log(mechanicsResponse.data);
       const mechanicsArray = mechanicsResponse.data
         ? Object.entries(mechanicsResponse.data).map(([id, value]) => ({
           id,
@@ -113,11 +112,10 @@ const AdminPortal = () => {
     setAlert({ show: false, message: '', onConfirm: () => { } });
   };
 
-  const sendApprovalEmail = async (mechanic) => {
+  const sendApprovalEmail = async (email, messagebody) => {
     const templateParams = {
-      to_email: mechanic.email,
-      mechanic_name: mechanic.name,
-      message: `Dear ${mechanic.name}, your request has been approved. You can now log in to our system Car Clinic as a mechanic.`,
+      to_email: email,
+      message: messagebody,
     };
 
     try {
@@ -133,8 +131,11 @@ const AdminPortal = () => {
     }
   };
 
-  const handleRemoveUser = async (uid) => {
+  const handleRemoveUser = async (user, uid) => {
     setShowAdminConfirmation(true);
+    setSelectedMechanic(user);
+    console.log(selectedMechanic);
+    
     setSetterId(uid)
   };
 
@@ -143,7 +144,10 @@ const AdminPortal = () => {
       await axios.delete(`https://car-clinic-backend.onrender.com/deleteUser/${setterId}`);
       showAlert("User removed successfully.");
       fetchUsersData(); // Refresh user list
+      const Message = `Dear ${selectedMechanic.name}, unfortunately you have been removed by the admin of Car Clinic. We are sorry for the inconveninence.`
+      await sendApprovalEmail(selectedMechanic.email, Message);
       setSetterId("")
+      setSelectedMechanic(null);
       setShowAdminConfirmation(false);
     } catch (error) {
       console.error("Error removing user:", error);
@@ -156,71 +160,72 @@ const AdminPortal = () => {
   };
 
 
-  const handleApprove = async (mechanic) => {
+  const handleApprove = (mechanic) => {
+    setShowConfirmationBox(true);
+    setSelectedMechanic(mechanic);
+  };
+
+  const handleConfirmationBox = async () => {
     try {
-      // Save admin's email before approving the mechanic
-      const adminEmail = auth.currentUser.email;
-      const adminPassword = "12345678"; // Hardcoded admin password (not recommended for production)
-
-      // Create mechanic account (this logs out the admin)
-      const userCredential = await createUserWithEmailAndPassword(auth, mechanic.email, mechanic.password);
-      const user = userCredential.user;
-
-      await updateProfile(user, {
-        displayName: mechanic.name
-      });
-
-      // Store mechanic in 'approvedMechanics' collection
-      await set(ref(database, `approvedMechanics/${user.uid}`), {
-        uid: user.uid,
-        name: mechanic.name,
-        email: mechanic.email,
-        phone: mechanic.phone,
-        role: 'mechanic',
-        status: 'approved',
-        specialty: mechanic.specialty,
-        experience: mechanic.experience,
-        date: "",
-        ratings: {
-          count: 0,
-          items: []
+      const response = await fetch("https://car-clinic-backend.onrender.com/approveMechanic", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
         },
-        appointments: "",
-        calendarLink: mechanic.calendarLink || null,
-        address: mechanic.address,
-        calendarId: mechanic.calendarId || null
+        body: JSON.stringify(selectedMechanic)
       });
 
-      // Remove from 'mechanics' collection after approval
-      await remove(ref(database, `mechanics/${mechanic.id}`));
+      const data = await response.json();
 
-      showAlert(`Mechanic ${mechanic.name} request is approved!!!`);
-      await sendApprovalEmail(mechanic);
-
-      // Reauthenticate the admin automatically
-      await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
-
-      fetchMechanicsData(); // Refresh UI
+      if (response.ok) {
+        showAlert(`Mechanic ${selectedMechanic?.name} request is approved!!!`);
+        const Message = `Dear ${selectedMechanic.name}, your request has been approved. You can now log in to our system Car Clinic as a mechanic.`
+        await sendApprovalEmail(selectedMechanic.email, Message);
+        fetchMechanicsData(); // Refresh UI
+        setSelectedMechanic(null);
+      } else {
+        showAlert(`Failed to approve mechanic: ${data.error}`);
+      }
+      setShowConfirmationBox(false);
     } catch (error) {
       console.error("Error approving mechanic:", error);
       showAlert(`Failed to approve mechanic: ${error.message}`);
     }
   };
 
+  const handleConfirmationBoxCancel = () => {
+    setShowConfirmationBox(false);
+  };
 
-  const handleReject = async (mechanicId) => {
+  const handleReject = (mechanic, mechanicId) => {
+    setShowRejectionBox(true);
+    setSelectedMechanicID(mechanicId)
+    setSelectedMechanic(mechanic);
+  };
+
+  const handleRejectionBox = async () => {
     try {
-      await remove(ref(database, `mechanics/${mechanicId}`));
+      await remove(ref(database, `mechanics/${selectedMechanicID}`));
       showAlert('Mechanic request rejected and removed.');
       fetchMechanicsData(); // Refresh mechanic list
+      const Message = `Dear ${selectedMechanic.name}, your request has for mechanic sign up is rejected by the admin of Car Clinic. We are sorry for the inconveninence.`
+      await sendApprovalEmail(selectedMechanic.email, Message);
+      setSelectedMechanicID("")
+      setSelectedMechanic(null)
+      setShowRejectionBox(false);
     } catch (error) {
       console.error('Error rejecting mechanic:', error);
       showAlert('Failed to reject mechanic.');
     }
   };
 
-  const handleRemove = async (id) => {
+  const handleRejectionBoxCancel = () => {
+    setShowRejectionBox(false);
+  };
+
+  const handleRemove = async (mechanic, id) => {
     setShowConfirmation(true);
+    setSelectedMechanic(mechanic);
     setSetterId(id)
   };
 
@@ -229,7 +234,8 @@ const AdminPortal = () => {
       await axios.delete(`https://car-clinic-9cc74-default-rtdb.firebaseio.com/approvedMechanics/${setterId}.json`);
       showAlert('Mechanic is removed.');
       fetchMechanicsData(); // Refresh data
-      setSetterId("")
+      handleAdminConfirm();
+      setSelectedMechanic("");
       setShowConfirmation(false);
     } catch (error) {
       console.error('Error removing mechanic:', error);
@@ -239,8 +245,6 @@ const AdminPortal = () => {
   const handleCancel = () => {
     setShowConfirmation(false);
   };
-
-
 
   return (
     <div className="admin-portal">
@@ -269,13 +273,14 @@ const AdminPortal = () => {
                   <td>{user.email}</td>
                   {/* <td>{user.phone}</td> */}
                   <td>
-                    <button className="reject-btn" onClick={() => handleRemoveUser(user.uid)}>Remove</button>
+                    <button className="reject-btn" onClick={() => handleRemoveUser(user, user.uid)}>Remove</button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
+
 
         {activeTable === 'mechanic' && (
           <table className="data-table">
@@ -286,7 +291,7 @@ const AdminPortal = () => {
                 <th>Phone Number</th>
                 <th>Experience</th>
                 <th>Field</th>
-                <th>Payment Proof</th>
+                <th>Sign Up Fee</th>
                 <th>Address</th>
                 <th>Actions</th>
               </tr>
@@ -301,7 +306,7 @@ const AdminPortal = () => {
                   <td>{mechanic.specialty}</td>
                   <td>
                     <a href={mechanic.paymentProof} target="_blank" rel="noopener noreferrer">
-                      <button className="approve-btn">Click Here</button>
+                      <button className="approve-btn">View</button>
                     </a>
                   </td>
                   <td>{mechanic.address}</td>
@@ -309,10 +314,10 @@ const AdminPortal = () => {
                     {mechanic.status === 'pending' ? (
                       <>
                         <button className="approve-btn" onClick={() => handleApprove(mechanic)}>Approve</button>
-                        <button className="reject-btn" onClick={() => handleReject(mechanic.id)}>Remove</button>
+                        <button className="reject-btn" onClick={() => handleReject(mechanic, mechanic.id)}>Remove</button>
                       </>
                     ) : (
-                      <button className="reject-btn" onClick={() => handleRemove(mechanic.id)}>Remove</button>
+                      <button className="reject-btn" onClick={() => handleRemove(mechanic, mechanic.id)}>Remove</button>
                     )}
                   </td>
                 </tr>
@@ -328,6 +333,7 @@ const AdminPortal = () => {
                 <th>Name</th>
                 <th>Phone Number</th>
                 <th>Email</th>
+                <th>Complaint</th>
                 <th>Query</th>
               </tr>
             </thead>
@@ -337,6 +343,7 @@ const AdminPortal = () => {
                   <td>{query?.name}</td>
                   <td>{query?.phone}</td>
                   <td>{query?.email}</td>
+                  <td>{query?.complaint}</td>
                   <td>{query?.message}</td>
                 </tr>
               ))}
@@ -380,12 +387,28 @@ const AdminPortal = () => {
       )}
       {showAdminConfirmation && (
         <ConfirmAlert
+          message={"Are you sure to Remove this user?"}
           onConfirm={handleAdminConfirm}
           onCancel={handleAdminCancel}
         />
       )}
+      {showConfirmationBox && (
+        <ConfirmAlert
+          message={"Are you sure to Accept this mechanic request?"}
+          onConfirm={handleConfirmationBox}
+          onCancel={handleConfirmationBoxCancel}
+        />
+      )}
+      {showRejectionBox && (
+        <ConfirmAlert
+          message={"Are you sure to Reject this mechanic request?"}
+          onConfirm={handleRejectionBox}
+          onCancel={handleRejectionBoxCancel}
+        />
+      )}
       {showConfirmation && (
         <ConfirmAlert
+          message={"Are you sure to Remove this mechanic?"}
           onConfirm={handleConfirm}
           onCancel={handleCancel}
         />

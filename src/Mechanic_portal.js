@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import dayjs from "dayjs";
+import emailjs from '@emailjs/browser';
 import "./Mechanic_portal.css";
 import CustomAlert from './CustomAlert';
 import ShowDetails from "./ShowDetails";
+import ConfirmAlert from './ConfirmAlert';
+import ChargesModal from "./CustomInput";
 import { Button, Checkbox, Dialog, DialogTitle, DialogContent, DialogActions, TextField, FormControl, Select, MenuItem, InputLabel } from "@mui/material";
 import { getAuth, onAuthStateChanged } from "firebase/auth"; // Import Firebase Auth
 
@@ -15,6 +18,9 @@ const MechanicPortal = ({ user, setUser }) => {
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [userEmail, setUserEmail] = useState(null);
+  const [chargesModalOpen, setChargesModalOpen] = useState(false);
+  const [selectedForCharges, setSelectedForCharges] = useState(null);
+  const [showConfirmation, setShowConfirmation] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
   const [selectedAppointments, setSelectedAppointments] = useState(null);
   const [selectedDays, setSelectedDays] = useState({});
@@ -23,6 +29,7 @@ const MechanicPortal = ({ user, setUser }) => {
   const [timeInputs, setTimeInputs] = useState({ openHour: "", closeHour: "" });
   const [calendarId, setCalendarId] = useState(null);
   const [mechanicRatings, setMechanicRatings] = useState([]);
+  const [totalRevenue, setTotalRevenue] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
 
   const [alert, setAlert] = useState({
@@ -30,7 +37,7 @@ const MechanicPortal = ({ user, setUser }) => {
     message: '',
     onConfirm: () => { },
   });
-  const [showAppointments, setShowAppointments] = useState(true);
+  const [appointmentID, setAppointmentID] = useState(true);
 
 
 
@@ -42,6 +49,25 @@ const MechanicPortal = ({ user, setUser }) => {
     } else {
       setCurrentDay(day);
       setDialogOpen(true);
+    }
+  };
+
+  const sendApprovalEmail = async (email, messageBody) => {
+    const templateParams = {
+      to_email: email,
+      message: messageBody,
+    };
+    
+    try {
+      await emailjs.send(
+        'service_8kgv9m8',     // Replace with your Email.js service ID
+        'template_bpruqj9',    // Replace with your Email.js template ID
+        templateParams,
+        'YXs-aMceIqko1PuHu'      // Replace with your Email.js public key
+      );
+      console.log('Approval email sent successfully');
+    } catch (error) {
+      console.error('Error sending email:', error);
     }
   };
 
@@ -84,6 +110,8 @@ const MechanicPortal = ({ user, setUser }) => {
       const result = await response.json();
       console.log("API Response:", result);
       showAlert("Availability Updated Successfully!!!");
+      const userMessage = `Dear ${user.displayName}, your availability is updated successfully!!! Have fun!!!`
+      await sendApprovalEmail(user.email, userMessage);
     } catch (error) {
       console.error("API Error:", error);
     }
@@ -207,64 +235,105 @@ const MechanicPortal = ({ user, setUser }) => {
     }
   };
 
-  // useEffect(() => {
-  //   fetchAppointments();
-  // }, []);
 
   const fetchAppointments = async (email) => {
     try {
       const response = await axios.get(firebaseURL);
       if (response.data) {
-        // Convert Firebase object into an array while preserving the unique keys
         const appointmentsArray = Object.entries(response.data).map(([id, data]) => ({
-          id, // Store Firebase ID for updating/deleting
+          id,
           ...data,
         }));
 
-        // Filter appointments for the logged-in mechanic
         const mechanicAppointments = appointmentsArray.filter(
           (appointment) => appointment.mechanicEmail === email
         );
 
-        // Separate into pending and completed
-        setAppointments({
-          pending: mechanicAppointments.filter(app => app.status === "pending"),
-          completed: mechanicAppointments.filter(app => app.status === "completed"),
-        });
+        const pending = mechanicAppointments.filter(app => app.status === "pending");
+        const completed = mechanicAppointments.filter(app => app.status === "completed");
+
+        // Calculate revenue from completed appointments
+        const total = completed.reduce((sum, app) => {
+          const charge = parseFloat(app.charges);
+          return sum + (isNaN(charge) ? 0 : charge);
+        }, 0);
+
+        setAppointments({ pending, completed });
+        setTotalRevenue(total); // 👈 Set revenue here
       }
     } catch (error) {
       console.error("Error fetching appointments:", error);
     }
   };
 
+  // by monthly revenue
+  // const fetchAppointments = async (email) => {
+  //   try {
+  //     const response = await axios.get(firebaseURL);
+  //     if (response.data) {
+  //       const appointmentsArray = Object.entries(response.data).map(([id, data]) => ({
+  //         id,
+  //         ...data,
+  //       }));
 
-  const updateAppointmentStatus = async (appointmentId) => {
-    try {
-      const updateURL = `https://car-clinic-9cc74-default-rtdb.firebaseio.com/appointments/${appointmentId}.json`;
+  //       const mechanicAppointments = appointmentsArray.filter(
+  //         (appointment) => appointment.mechanicEmail === email
+  //       );
 
-      await axios.patch(updateURL, { status: "completed" }); // Correctly updating the status
+  //       const pending = mechanicAppointments.filter(app => app.status === "pending");
+  //       const completed = mechanicAppointments.filter(app => app.status === "completed");
 
-      // Refresh appointments after update
-      fetchAppointments();
-    } catch (error) {
-      console.error("Error updating appointment status:", error);
-    }
+  //       // --- Monthly Revenue Calculation ---
+  //       const revenueByMonth = {};
+  //       completed.forEach(app => {
+  //         if (app.charges) {
+  //           const month = dayjs(app.EntryDate || app.date).format("MMMM YYYY");
+  //           revenueByMonth[month] = (revenueByMonth[month] || 0) + parseFloat(app.charges);
+  //         }
+  //       });
+
+  //       setAppointments({ pending, completed });
+  //       setMonthlyRevenue(revenueByMonth);
+  //     }
+  //   } catch (error) {
+  //     console.error("Error fetching appointments:", error);
+  //   }
+  // };
+
+
+  // const updateAppointmentStatus = async (appointmentId) => {
+  //   try {
+  //     const updateURL = `https://car-clinic-9cc74-default-rtdb.firebaseio.com/appointments/${appointmentId}.json`;
+
+  //     await axios.patch(updateURL, { status: "completed" }); // Correctly updating the status
+
+  //     // Refresh appointments after update
+  //     fetchAppointments();
+  //   } catch (error) {
+  //     console.error("Error updating appointment status:", error);
+  //   }
+  // };
+  
+  const deleteAppointment = async (appointment, appointmentId) => {
+    console.log(appointment);
+    setShowConfirmation(true);
+    setSelectedAppointments(appointment)
+    setAppointmentID(appointmentId);
   };
 
-  const deleteAppointment = async (appointmentId) => {
+  const handleConfirm = async () => {
     try {
-      const deleteURL = `https://car-clinic-9cc74-default-rtdb.firebaseio.com/appointments/${appointmentId}.json`;
-
+      const deleteURL = `https://car-clinic-9cc74-default-rtdb.firebaseio.com/appointments/${appointmentID}.json`;
       await axios.delete(deleteURL); // Delete appointment from Firebase
-
-      // Refresh appointments after deletion
       fetchAppointments();
+      setShowConfirmation(false);
+      const userMessage = `Dear ${selectedAppointments.name}, your appointment request has been cancel by the mechanic ${selectedAppointments.mechanic}. We are sorry for the inconvenience. Thank you for your trust!!!`
+      await sendApprovalEmail(selectedAppointments.email, userMessage);
     } catch (error) {
       console.error("Error deleting appointment:", error);
     }
+
   };
-
-
 
   const fetchCalendarAppointments = async () => {
     try {
@@ -289,7 +358,7 @@ const MechanicPortal = ({ user, setUser }) => {
     return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}+05:00`;
   };
 
-  const moveAppointmentAfterOneHour = async (appointmentId, calendarId, depth = 0) => {
+  const moveAppointmentAfterOneHour = async (appointment, appointmentId, calendarId, depth = 0) => {
     setIsLoading(true);
     try {
       const calendarResponse = await axios.get(`${firebaseDB}/calendarAppointments/${calendarId}.json`);
@@ -331,6 +400,10 @@ const MechanicPortal = ({ user, setUser }) => {
 
       await updateAppointmentInGHLAndFirebase(appointmentId, calendarId, formattedNewStartTime, calendarAppointments);
       console.log(`Appointment ${appointmentId} moved to ${formattedNewStartTime}`);
+      const mecMessage = `Dear ${user.displayName}, your appointment ${appointmentId} moved to ${formattedNewStartTime} successfully!!! Have fun!!!`
+      await sendApprovalEmail(user.email, mecMessage);
+      const userMessage = `Dear ${appointment.name}, your appointment for ${appointment.carModel} moved to ${formattedNewStartTime} by mechanic. Sorry for the inconvenience!`
+      await sendApprovalEmail(appointment.email, userMessage);
 
       if (depth === 0) {
         setIsLoading(false);
@@ -434,6 +507,10 @@ const MechanicPortal = ({ user, setUser }) => {
     setOpenDialog(false);
   };
 
+  const handleCancel = () => {
+    setShowConfirmation(false);
+  };
+
   return (
     <div className="admin-portal">
 
@@ -448,7 +525,7 @@ const MechanicPortal = ({ user, setUser }) => {
           alignItems: 'center',
           pointerEvents: 'all',
         }}>
-          <div style={{ fontSize: '2.5rem', fontWeight: 'bold' , color : "#6C4D13" }}>Processing appointments...</div>
+          <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: "#6C4D13" }}>Processing appointments...</div>
         </div>
       )}
 
@@ -457,6 +534,7 @@ const MechanicPortal = ({ user, setUser }) => {
         <button className={activeTable === 'completed' ? 'active-tab' : ''} onClick={() => setActiveTable('completed')}>Completed</button>
         <button className={activeTable === 'availability' ? 'active-tab' : ''} onClick={() => setActiveTable('availability')}>Availability</button>
         <button className={activeTable === 'ratings' ? 'active-tab' : ''} onClick={() => setActiveTable('ratings')}>Ratings</button>
+        <button className={activeTable === 'revenue' ? 'active-tab' : ''} onClick={() => setActiveTable('revenue')}>Revenue</button>
       </div>
       <div className="table-container">
         {activeTable === 'pending' && (
@@ -511,10 +589,13 @@ const MechanicPortal = ({ user, setUser }) => {
                     </td>
 
                     <td>
-                      <Button variant="contained" color="success" onClick={() => updateAppointmentStatus(appointment.id)} style={{ marginLeft: "10px" }}>
+                      <Button variant="contained" color="success" onClick={() => {
+                        setSelectedForCharges(appointment);
+                        setChargesModalOpen(true);
+                      }} style={{ marginLeft: "10px" }}>
                         Done
                       </Button>
-                      <Button variant="contained" color="error" onClick={() => deleteAppointment(appointment.id)} >
+                      <Button variant="contained" color="error" onClick={() => deleteAppointment(appointment, appointment.id)} >
                         Cancel
                       </Button>
                     </td>
@@ -636,6 +717,18 @@ const MechanicPortal = ({ user, setUser }) => {
             </tbody>
           </table>
         )}
+        {activeTable === 'revenue' && (
+          <div className="revenue">
+            <div>
+              <h2>The Revenue of this month:</h2>
+              <h2>Rs: {totalRevenue}/-</h2>
+            </div>
+            <div>
+              <h2>Whole revenue generated from this platform:</h2>
+              <h2>Rs: {totalRevenue}/-</h2>
+            </div>
+          </div>
+        )}
       </div>
       {/* MUI Dialog for Appointment Details */}
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
@@ -645,6 +738,7 @@ const MechanicPortal = ({ user, setUser }) => {
             <>
               <p><strong>Appointment ID:</strong> {selectedAppointment.appointmentId || "N/A"}</p>
               <p><strong>Visit Preference:</strong> {selectedAppointment.visitPreference || "N/A"}</p>
+              <p><strong>Query:</strong> {selectedAppointment.query || "N/A"}</p>
               <p><strong>Car Model:</strong> {selectedAppointment.carModel || "N/A"}</p>
               <p><strong>Car Number Plate:</strong> {selectedAppointment.carNumberPlate || "N/A"}</p>
               <p><strong>Selected Services:</strong> {selectedAppointment.selectedServices || "N/A"}</p>
@@ -663,9 +757,9 @@ const MechanicPortal = ({ user, setUser }) => {
             <Button
               variant="contained"
               color="primary"
-              onClick={() => moveAppointmentAfterOneHour(selectedAppointment.appointmentId, selectedAppointment.calendarId)}
+              onClick={() => moveAppointmentAfterOneHour(selectedAppointment,selectedAppointment.appointmentId, selectedAppointment.calendarId)}
             >
-              Update Availability
+              Extend an hour
             </Button>
           )}
         </DialogActions>
@@ -713,6 +807,28 @@ const MechanicPortal = ({ user, setUser }) => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <ChargesModal
+        open={chargesModalOpen}
+        onClose={() => setChargesModalOpen(false)}
+        onConfirm={async (charges) => {
+          try {
+            const updateURL = `https://car-clinic-9cc74-default-rtdb.firebaseio.com/appointments/${selectedForCharges.id}.json`;
+            await axios.patch(updateURL, {
+              status: "completed",
+              charges,
+            });
+            fetchAppointments();
+            setChargesModalOpen(false);
+            const userMessage = `Dear ${selectedForCharges.name}, your appointment request for services has been completed by the mechanic ${selectedForCharges.mechanic}. Please give ratings to your mechanic depends on the service provided by log into your account in Car Clinic and go to My Appointments. Thank you for your trust!!!`
+            await sendApprovalEmail(selectedForCharges.email, userMessage);
+
+          } catch (error) {
+            console.error("Error updating status/charges:", error);
+          }
+        }}
+      />
+
       {alert.show && (
         <CustomAlert
           message={alert.message}
@@ -734,6 +850,13 @@ const MechanicPortal = ({ user, setUser }) => {
         />
       )}
 
+      {showConfirmation && (
+        <ConfirmAlert
+          message={"Are you sure to reject this appointment?"}
+          onConfirm={handleConfirm}
+          onCancel={handleCancel}
+        />
+      )}
 
     </div>
   );

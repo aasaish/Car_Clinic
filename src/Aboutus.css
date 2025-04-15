@@ -21,9 +21,6 @@
     color: hsl(0, 0%, 100%); 
   }
   
-  .why div {
-    margin-bottom: 40px;
-  }
   
   /* Optional: Styling the background of each section */
   .why .why-section {
@@ -31,5 +28,26 @@
     padding: 20px;
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(255, 215, 0, 0.2); /* Subtle golden shadow */
+  }
+
+  .card {
+    background-color: #282c34;
+    border-radius: 10px;
+    padding: 1rem;
+    height: 100%;
+    margin-right: 5px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .text-warning {
+    color: gold;
+  }
+  
+  .text-primary {
+    color: #0d6efd;
+  }
+  
+  .rounded-circle {
+    border-radius: 50%;
   }
   

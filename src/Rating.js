@@ -2,12 +2,15 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import CustomAlert from './CustomAlert';
 import './Rating.css';
+import { useNavigate } from 'react-router-dom';
 import { useParams } from 'react-router-dom';
+import emailjs from '@emailjs/browser';
 import { ref, push, update, get } from "firebase/database";
 import { database } from './firebase';
 
 const Rating = ({ user, setUser }) => {
 
+  const navigate = useNavigate();
   const { email } = useParams();
   const { aid } = useParams();
 
@@ -49,6 +52,25 @@ const Rating = ({ user, setUser }) => {
 
     fetchMechanic();
   }, [email]);
+
+  const sendApprovalEmail = async (email, messageBody) => {
+    const templateParams = {
+      to_email: email,
+      message: messageBody,
+    };
+
+    try {
+      await emailjs.send(
+        'service_8kgv9m8',     // Replace with your Email.js service ID
+        'template_bpruqj9',    // Replace with your Email.js template ID
+        templateParams,
+        'YXs-aMceIqko1PuHu'      // Replace with your Email.js public key
+      );
+      console.log('Approval email sent successfully');
+    } catch (error) {
+      console.error('Error sending email:', error);
+    }
+  };
 
 
   // Handle input changes
@@ -137,82 +159,85 @@ const Rating = ({ user, setUser }) => {
 
           // Alert + reset form
           showAlert("Your rating has been submitted successfully!");
+          const userMessage = `Dear ${formData.mechanicName}, you have a ${formData.rating} star ratings for your services and your customer remarks is "${formData.comments}". Thank you for you services!!!`
+          await sendApprovalEmail(email, userMessage);
           setFormData({
             mechanicName: mechanic?.name,
             rating: '',
             comments: ''
           });
-        }else {
-            console.error("Appointment not found for given aid.");
-            showAlert("Appointment not found.");
-          }
+          navigate("/MyAppointments");
+        } else {
+          console.error("Appointment not found for given aid.");
+          showAlert("Appointment not found.");
         }
-    
-
-        } catch (error) {
-          console.error("Error submitting rating:", error);
-          showAlert("Failed to submit rating. Please try again.");
-        }
-      };
-
-      if (!user) return <p>Loading user info...</p>;
+      }
 
 
-      return (
-        <div className="rating-page">
-          <h2>Rate Your Mechanic</h2>
-          <form className="rating-form" onSubmit={handleSubmit}>
-            <label htmlFor="mechanicName">Mechanic Name:</label>
-            <input
-              type="text"
-              id="mechanicName"
-              name="mechanicName"
-              value={formData.mechanicName}
-              disabled
-            />
+    } catch (error) {
+      console.error("Error submitting rating:", error);
+      showAlert("Failed to submit rating. Please try again.");
+    }
+  };
 
-            <label htmlFor="rating">Rating (1-5):</label>
-            <select
-              id="rating"
-              name="rating"
-              value={formData.rating}
-              onChange={handleChange}
-              required
-            >
-              <option value="">Select rating</option>
-              <option value="1">1 - Poor</option>
-              <option value="2">2 - Fair</option>
-              <option value="3">3 - Good</option>
-              <option value="4">4 - Very Good</option>
-              <option value="5">5 - Excellent</option>
-            </select>
+  if (!user) return <p>Loading user info...</p>;
 
-            <label htmlFor="comments">Comments:</label>
-            <textarea
-              id="comments"
-              name="comments"
-              value={formData.comments}
-              onChange={handleChange}
-              placeholder="Write your feedback here"
-            ></textarea>
 
-            <button type="submit">Submit Rating</button>
-          </form>
-          {alert.show && (
-            <CustomAlert
-              message={alert.message}
-              onConfirm={() => {
-                if (typeof alert.onConfirm === "function") {
-                  alert.onConfirm(); // Execute the stored function
-                }
-                closeAlert(); // Close alert after confirmation
-              }}
-              onCancel={closeAlert}
-              buttonLabel="OK"
-            />
-          )}
-        </div>
-      );
-    };
+  return (
+    <div className="rating-page">
+      <h2>Rate Your Mechanic</h2>
+      <form className="rating-form" onSubmit={handleSubmit}>
+        <label htmlFor="mechanicName">Mechanic Name:</label>
+        <input
+          type="text"
+          id="mechanicName"
+          name="mechanicName"
+          value={formData.mechanicName}
+          disabled
+        />
 
-    export default Rating;
+        <label htmlFor="rating">Rating (1-5):</label>
+        <select
+          id="rating"
+          name="rating"
+          value={formData.rating}
+          onChange={handleChange}
+          required
+        >
+          <option value="">Select rating</option>
+          <option value="1">1 - Poor</option>
+          <option value="2">2 - Fair</option>
+          <option value="3">3 - Good</option>
+          <option value="4">4 - Very Good</option>
+          <option value="5">5 - Excellent</option>
+        </select>
+
+        <label htmlFor="comments">Comments:</label>
+        <textarea
+          id="comments"
+          name="comments"
+          value={formData.comments}
+          onChange={handleChange}
+          placeholder="Write your feedback here"
+        ></textarea>
+
+        <button type="submit">Submit Rating</button>
+      </form>
+      {alert.show && (
+        <CustomAlert
+          message={alert.message}
+          onConfirm={() => {
+            if (typeof alert.onConfirm === "function") {
+              alert.onConfirm(); // Execute the stored function
+            }
+            closeAlert(); // Close alert after confirmation
+          }}
+          onCancel={closeAlert}
+          buttonLabel="OK"
+        />
+      )}
+    </div>
+  );
+};
+
+export default Rating;

@@ -70,7 +70,7 @@ function App() {
       navigate('/mechanic_portal');
     }
   }, [user, isAdmin, isMechanic, navigate]);
-  
+
 
 
   return (
@@ -80,14 +80,7 @@ function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
 
-          <Route
-            path="/appointment"
-            element={
-              <UserOnlyRoute user={user} isAdmin={isAdmin} isMechanic={isMechanic}>
-                <Appointment user={user} setUser={setUser} />
-              </UserOnlyRoute>
-            }
-          />
+          <Route path="/appointment" element={<Appointment user={user} setUser={setUser} />} />
 
           <Route
             path="/MyAppointments"

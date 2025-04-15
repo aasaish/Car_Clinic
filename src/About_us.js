@@ -1,5 +1,6 @@
 import React from 'react';
 import './Aboutus.css';
+import Reviews from "./Reviews.js"
 
 const About_us = () => {
   return (
@@ -27,6 +28,7 @@ const About_us = () => {
         <p>- Virtual AI assistance to automatically rectify your vehicle issues.</p>
         <p>- Awareness campaigns for Auto Repairing for Auto Workshops, Professionals, and End Users.</p>
       </div>
+    <Reviews/>
     </div>
   );
 };

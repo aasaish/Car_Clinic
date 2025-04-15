@@ -5,6 +5,7 @@ import { signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, up
 import { auth } from './firebase';
 import CustomAlert from './CustomAlert';
 import axios from 'axios';
+import emailjs from '@emailjs/browser';
 import { Checkbox, Dialog, DialogTitle, DialogContent, DialogActions, Button, FormControl, InputLabel, Select, MenuItem } from "@mui/material";
 
 
@@ -19,6 +20,7 @@ const SignUp = () => {
   const [specialty, setSpecialty] = useState('');
   const [experience, setExperience] = useState('');
   const [paymentProof, setPaymentProof] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [alert, setAlert] = useState({
     show: false,
     message: '',
@@ -122,13 +124,10 @@ const SignUp = () => {
       handleMechanicSignUp(calendarLink, calendarId);
     }
   };
-  // const handleSubmit = (e) => {
-  //   e.preventDefault();
-  //   console.log({ name, email, phone, address, specialty, experience, password, confirmPassword, availability });
-  // };
 
   const handleSubmitAPI = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
     if (Object.keys(selectedDays).length === 0) {
       console.log("Please select at least one day for availability.");
@@ -198,7 +197,7 @@ const SignUp = () => {
     const clientId = "5786665754-131bggp0f0k2f4j4cdjaimqn0idj1vnf.apps.googleusercontent.com";
     const clientSecret = "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";
     const refreshToken = "1//099ExCM7JZXeXCgYIARAAGAkSNwF-L9Ir_2auj4nj4KAzepIvI24JJ6-EVY4gTgSq_AH5M5G0s9-VHhsIWux6fqzxzRxD4MnlAhg";
-  
+
     try {
       const response = await fetch("https://oauth2.googleapis.com/token", {
         method: "POST",
@@ -210,7 +209,7 @@ const SignUp = () => {
           grant_type: "refresh_token",
         }),
       });
-  
+
       const data = await response.json();
       return data.access_token;
     } catch (error) {
@@ -218,7 +217,7 @@ const SignUp = () => {
       return null;
     }
   };
-  
+
 
   const uploadToGoogleDrive = async (file) => {
     const accessToken = await getAccessToken();
@@ -226,20 +225,20 @@ const SignUp = () => {
       console.error("Failed to get access token.");
       return;
     }
-  
+
     const metadata = {
       name: file.name,
       mimeType: file.type,
       parents: ["1woYwQGYjFEg51aHzCEB2S3gjoNn4TpsY"], // Replace with the Google Drive folder ID where you want to store the file
     };
-  
+
     const formData = new FormData();
     formData.append(
       "metadata",
       new Blob([JSON.stringify(metadata)], { type: "application/json" })
     );
     formData.append("file", file);
-  
+
     try {
       const response = await fetch(
         "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart",
@@ -251,17 +250,35 @@ const SignUp = () => {
           body: formData,
         }
       );
-  
+
       const data = await response.json();
       console.log("File uploaded successfully:", data);
       return data.id; // Returns the file ID
 
-      
+
     } catch (error) {
       console.error("Error uploading file to Google Drive:", error);
     }
   };
 
+  const sendApprovalEmail = async (email, messagebody) => {
+    const templateParams = {
+      to_email: email,
+      message: messagebody,
+    };
+
+    try {
+      await emailjs.send(
+        'service_8kgv9m8',     // Replace with your Email.js service ID
+        'template_bpruqj9',    // Replace with your Email.js template ID
+        templateParams,
+        'YXs-aMceIqko1PuHu'      // Replace with your Email.js public key
+      );
+      console.log('Approval email sent successfully');
+    } catch (error) {
+      console.error('Error sending email:', error);
+    }
+  };
 
   const handleUserSignUp = async () => {
     try {
@@ -277,6 +294,8 @@ const SignUp = () => {
 
       console.log("User registered:", user);
       console.log("User name:", user.displayName);
+      const userMessage = `Welcome ${user.displayName} to our Car Clinic system. You have been successfully sign up in Car Clinic. Enjoy the flawless services and experience!!!`
+      await sendApprovalEmail(user.email, userMessage);
       window.location.reload();
 
     } catch (error) {
@@ -289,6 +308,12 @@ const SignUp = () => {
     // Logic to handle mechanic sign-up with the form data
     if (!paymentProof) {
       showAlert("Please upload payment proof!");
+      setIsSubmitting(false);
+      return;
+    }
+    if (paymentProof.size > 5 * 1024 * 1024) {
+      showAlert("File too large. Please upload a file smaller than 5MB.");
+      setIsSubmitting(false);
       return;
     }
 
@@ -297,6 +322,7 @@ const SignUp = () => {
       const fileId = await uploadToGoogleDrive(paymentProof);
       if (!fileId) {
         showAlert("Failed to upload payment proof!");
+        setIsSubmitting(false);
         return;
       }
 
@@ -312,7 +338,7 @@ const SignUp = () => {
         password,
         calendarLink: calendarLink,
         calendarId: calendarId,
-        paymentProof: `https://drive.google.com/file/d/${fileId}/view`,  // Ideally, store this in Firebase Storage
+        paymentProof: `https://drive.google.com/file/d/${fileId}/view`,
       };
 
       console.log(mechanicData);
@@ -323,11 +349,17 @@ const SignUp = () => {
       });
 
       showAlert("Your request has been sent to the admin for approval!");
-
+      const userMessage = `Dear ${mechanicData.name}, your request is successfully submitted. Now you have to wait for the approval from admin of Car Clinic. Thanks for trusting us!!!`
+      await sendApprovalEmail(mechanicData.email, userMessage);
+      const adminMessage = `Dear Admin of Car Clinic, you have got a new request from mechanic who is waiting for your approval. Please go to your Admin Portal and proceed accordingly.`
+      const adminEmail = "malikmani156.mm@gmail.com"
+      await sendApprovalEmail(adminEmail, adminMessage);
+      setIsSubmitting(false);
       window.location.reload();
     } catch (error) {
       console.error("Error signing up:", error);
       showAlert(`Sign-Up failed. Error: ${error.message}`);
+      setIsSubmitting(false);
     }
 
   };
@@ -383,7 +415,7 @@ const SignUp = () => {
 
                   <tr>
                     <td><label>Phone Number:</label></td>
-                    <td><input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} required /></td>
+                    <td><input type="number" value={phone} onChange={(e) => setPhone(e.target.value)} required /></td>
                   </tr>
                   <tr>
                     <td><label>Password:</label></td>
@@ -413,7 +445,7 @@ const SignUp = () => {
                 <tbody>
                   <tr><td><label>Name:</label></td><td><input type="text" value={name} onChange={(e) => setName(e.target.value)} required /></td></tr>
                   <tr><td><label>Email:</label></td><td><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></td></tr>
-                  <tr><td><label>Phone Number:</label></td><td><input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} required /></td></tr>
+                  <tr><td><label>Phone Number:</label></td><td><input type="number" value={phone} onChange={(e) => setPhone(e.target.value)} required /></td></tr>
                   <tr><td><label>Address:</label></td><td><input type="text" value={address} onChange={(e) => setAddress(e.target.value)} required /></td></tr>
                   <tr>
                     <td><label>Specialty:</label></td>
@@ -458,7 +490,8 @@ const SignUp = () => {
                 ))}
               </div>
 
-              <button type="submit">Submit</button>
+              <button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Processing...' : 'Submit'}</button>
             </form>
 
 

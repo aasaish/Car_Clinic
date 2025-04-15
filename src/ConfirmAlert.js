@@ -2,11 +2,11 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import styles from './Confirmation.module.css'; // Define your CSS for the confirmation dialog
 
-const ConfirmAlert = ({onConfirm, onCancel}) => {
+const ConfirmAlert = ({message, onConfirm, onCancel}) => {
   return ReactDOM.createPortal(
     <div className={styles.overlay}>
       <div className={styles.modal}>
-        <p>Are you Sure to Remove It?</p>
+      <p>{message}</p>
         <div className={styles.buttonContainer}>
           <button className={styles.confirmButton} onClick={onConfirm}>
             Yes

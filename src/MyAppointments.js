@@ -121,6 +121,11 @@ const MyAppointments = ({ user, setUser }) => {
                                     <td>{appointment.selectedServices}</td>
                                     <td>
                                         {appointment.status === "completed" ? (
+                                           <p>{appointment.rating ? (
+                                            [...Array(5)].map((_, i) => (
+                                                <span key={i} style={{ color: i < appointment.rating ? '#FFD700' : '#ccc' }}>★</span>
+                                            ))
+                                        ) : (
                                             <Button
                                                 variant="contained"
                                                 color="success"
@@ -128,14 +133,16 @@ const MyAppointments = ({ user, setUser }) => {
                                             >
                                                 Rate Us
                                             </Button>
+                                        )}</p>
                                         ) : (
+                                            <p>
                                             <Button
                                                 variant="contained"
                                                 color="error"
                                                 onClick={() => deleteAppointment(appointment.id)}
                                             >
                                                 Cancel
-                                            </Button>
+                                            </Button></p>
                                         )}
                                     </td>
                                 </tr>

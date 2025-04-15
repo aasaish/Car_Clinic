@@ -32,17 +32,23 @@
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
 }
 
 .footer {
-  background-color: #030303; /* Dark footer background */
-  color: white; /* White text */
-  padding: 20px; /* Add padding */
-  text-align: center; /* Center the text */
+  background-color: #030303;
+  /* Dark footer background */
+  color: white;
+  /* White text */
+  padding: 20px;
+  /* Add padding */
+  text-align: center;
+  /* Center the text */
   position: relative;
   bottom: 0;
-  width: 100%;
+  width: 98.3%;
 }
+

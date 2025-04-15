@@ -2,12 +2,12 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom"; // Import useNavigate
 import CustomAlert from './CustomAlert';
+import emailjs from '@emailjs/browser';
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import "./Appointment.css";
 
 const Appointment = ({ user, setUser }) => {
-  const [visitPreference, setVisitPreference] = useState([]);
-  const [selectedOption, setSelectedOption] = useState([]);
+  // const [visitPreference, setVisitPreference] = useState([]);
   const [showCalendar, setShowCalendar] = useState(false);
   const [calendarUrl, setCalendarUrl] = useState("");
   const [formData, setFormData] = useState({
@@ -23,6 +23,7 @@ const Appointment = ({ user, setUser }) => {
     visitPreference: "",
     selectedServices: "",
     status: "pending",
+    charges: "",
     rating: "",
     calendarLink: "",
   });
@@ -113,6 +114,32 @@ const Appointment = ({ user, setUser }) => {
     });
   }, [navigate]);
 
+  const handleRadioClick = (value) => {
+    setFormData((prevData) => ({
+      ...prevData,
+      visitPreference: prevData.visitPreference === value ? "" : value,
+    }));
+  };
+
+  const sendApprovalEmail = async (email,messageBody) => {
+    const templateParams = {
+      to_email: email,
+      message: messageBody,
+    };
+
+    try {
+      await emailjs.send(
+        'service_8kgv9m8',     // Replace with your Email.js service ID
+        'template_bpruqj9',    // Replace with your Email.js template ID
+        templateParams,
+        'YXs-aMceIqko1PuHu'      // Replace with your Email.js public key
+      );
+      console.log('Approval email sent successfully');
+    } catch (error) {
+      console.error('Error sending email:', error);
+    }
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -137,13 +164,6 @@ const Appointment = ({ user, setUser }) => {
     }
   };
 
-  const handleCheckboxChange = (e, stateUpdater) => {
-    const { value, checked } = e.target;
-    stateUpdater((prev) =>
-      checked ? [...prev, value] : prev.filter((item) => item !== value)
-    );
-  };
-
   const showAlert = (message, onConfirm) => {
     setAlert({ show: true, message, onConfirm });
   };
@@ -161,7 +181,6 @@ const Appointment = ({ user, setUser }) => {
     const updatedFormData = {
       ...formData,
       aid: randomAID.toString(), // <-- Set aid here directly
-      visitPreference: visitPreference.join(", "),
       mechanicEmail: formData.mechanicEmail,
     };
 
@@ -170,14 +189,20 @@ const Appointment = ({ user, setUser }) => {
         headers: { "Content-Type": "application/json" },
       });
 
-      if (visitPreference.includes("I Will Visit") && formData.calendarLink) {
+
+
+      if (formData.visitPreference === "I Will Visit" && formData.calendarLink) {
         setCalendarUrl(formData.calendarLink); // Show selected mechanic's calendar
         setShowCalendar(true);
-      } else if (visitPreference.includes("Visit Me")) {
+      } else if (formData.visitPreference === "Visit Me") {
         showAlert(
           "Your appointment request has been submitted. Our team will contact you shortly!"
         );
         // window.location.reload();
+        const userMessage =`Dear ${formData.name},, your appointment request has been submitted. Our team will contact you shortly! Stay tuned with us!!!`
+        const mechanicMessage =`Dear ${formData.mechanic}, you have a new appointment request. Our customer ${formData.name} is waiting for your response. Please log into your account at Car Clinic and check new request in mechanic portal. Thank you!!!`
+        await sendApprovalEmail(formData.email,userMessage);
+        await sendApprovalEmail(formData.mechanicEmail,mechanicMessage);
         setShowCalendar(false);
       }
 
@@ -201,10 +226,10 @@ const Appointment = ({ user, setUser }) => {
         selectedServices: "",
         mechanicEmail: "",
         status: "pending",
-        rating: null,
+        charges: "",
+        rating: "",
         calendarLink: "",
       });
-      setVisitPreference([]);
 
     } catch (error) {
       console.error("Error adding appointment:", error);
@@ -248,7 +273,7 @@ const Appointment = ({ user, setUser }) => {
           <div className="labels">
             <label>Mobile Number:</label>
             <input
-              type="tel"
+              type="number"
               name="mobile"
               value={formData.mobile}
               onChange={handleChange}
@@ -342,38 +367,24 @@ const Appointment = ({ user, setUser }) => {
               <label>Visit Preference:</label></div>
             <div className="options">
               <div>
-                <input
-                  type="checkbox"
-                  value="Visit Me"
-                  onChange={(e) => handleCheckboxChange(e, setVisitPreference)}
-                />
-                <span>Visit Me</span></div>
+                <input type="radio" value="Visit Me"
+                  checked={formData.visitPreference === 'Visit Me'}
+                  onChange={() => handleRadioClick('Visit Me')} />
+                <span>Visit Me</span>
+              </div>
               <div>
-                <input
+                {/* <input
                   type="checkbox"
                   value="I Will Visit"
                   onChange={(e) => handleCheckboxChange(e, setVisitPreference)}
-                />
+                /> */}
+                <input type="radio" value="I Will Visit"
+                  checked={formData.visitPreference === 'I Will Visit'}
+                  onChange={() => handleRadioClick('I Will Visit')} />
                 <span>I Will Visit</span>
               </div>
             </div>
           </div>
-          {/* <div>
-          <label>Select an Option:</label>
-          <div>
-            {Object.keys(calendarURLs).map((option) => (
-              <div key={option}>
-                <input
-                  type="checkbox"
-                  value={option}
-                  onChange={(e) => handleCheckboxChange(e, setSelectedOption)}
-                />
-                <span>{option}</span>
-              </div>
-            ))}
-          </div>
-        </div> */}
-
           <div>
             <button type="submit">Submit</button>
           </div>
