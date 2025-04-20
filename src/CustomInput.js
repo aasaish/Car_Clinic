@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 import styles from './Confirmation.module.css'; // You’ll define this CSS module
 
-const ChargesModal = ({ open, onClose, onConfirm }) => {
+const ChargesModal = ({ open, onClose, onConfirm, heading ,placeholderText}) => {
   const [charges, setCharges] = useState("");
 
   if (!open) return null;
@@ -15,10 +15,10 @@ const ChargesModal = ({ open, onClose, onConfirm }) => {
   return ReactDOM.createPortal(
     <div className={styles.overlay}>
       <div className={styles.modal}>
-        <h2>Enter Service Charges:</h2>
+        <h2>{heading}</h2>
         <input
           type="number"
-          placeholder="Enter charges"
+          placeholder={placeholderText}
           value={charges}
           onChange={(e) => setCharges(e.target.value)}
           className={styles.input}
@@ -38,3 +38,4 @@ const ChargesModal = ({ open, onClose, onConfirm }) => {
 };
 
 export default ChargesModal;
+

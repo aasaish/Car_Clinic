@@ -46,6 +46,7 @@ app.delete("/deleteUser/:uid", async (req, res) => {
   }
 });
 
+
 const firebaseDB = "https://car-clinic-9cc74-default-rtdb.firebaseio.com"; // Firebase base URL
 const firebaseURL = "https://car-clinic-9cc74-default-rtdb.firebaseio.com/appointments.json";
 

@@ -19,6 +19,7 @@ const Home = () => {
     const fetchTopMechanics = async () => {
       try {
         const response = await axios.get("https://car-clinic-9cc74-default-rtdb.firebaseio.com/approvedMechanics.json");
+console.log(response.data);
 
         if (response?.data) {
           const mechanicsArray = Object.values(response.data);
@@ -31,18 +32,22 @@ const Home = () => {
             const avgRating = ratings.length
               ? ratings.reduce((sum, r) => sum + (Number(r.rating) || 0), 0) / ratings.length
               : 0;
-
+          
             const updatedMechanic = {
               ...mechanic,
               averageRating: parseFloat(avgRating.toFixed(1))
             };
-
-            if (!groupedBySpeciality[mechanic.specialty]) {
-              groupedBySpeciality[mechanic.specialty] = [];
-            }
-
-            groupedBySpeciality[mechanic.specialty].push(updatedMechanic);
+          
+            const specialties = Array.isArray(mechanic.specialties) ? mechanic.specialties : [mechanic.specialties];
+          
+            specialties.forEach((specialty) => {
+              if (!groupedBySpeciality[specialty]) {
+                groupedBySpeciality[specialty] = [];
+              }
+              groupedBySpeciality[specialty].push(updatedMechanic);
+            });
           });
+          
 
           // Sort and pick top 2 for each specialty
           const topTwoPerSpeciality = {};

@@ -90,11 +90,14 @@ const Appointment = ({ user, setUser }) => {
 
   useEffect(() => {
     if (formData.selectedServices) {
-      console.log("mechanic", mechanics);
 
       const filtered = mechanics.filter(
-        (mechanic) => mechanic.specialty === formData.selectedServices
+        (mechanic) =>
+          Array.isArray(mechanic.specialties)
+            ? mechanic.specialties.includes(formData.selectedServices)
+            : mechanic.specialties === formData.selectedServices
       );
+
       setFilteredMechanics(filtered);
     } else {
       setFilteredMechanics([]); // Reset if no service is selected
@@ -121,7 +124,7 @@ const Appointment = ({ user, setUser }) => {
     }));
   };
 
-  const sendApprovalEmail = async (email,messageBody) => {
+  const sendApprovalEmail = async (email, messageBody) => {
     const templateParams = {
       to_email: email,
       message: messageBody,
@@ -146,8 +149,6 @@ const Appointment = ({ user, setUser }) => {
     // If the selected field is 'mechanic', also update the calendar link
     if (name === "mechanic") {
       const selectedMechanic = mechanics.find((m) => m.name === value);
-      console.log("Selected Mechanic:", selectedMechanic); // Debugging
-      console.log("Calendar Link:", selectedMechanic?.calendarLink);
       setFormData({
         ...formData,
         [name]: value,
@@ -199,10 +200,10 @@ const Appointment = ({ user, setUser }) => {
           "Your appointment request has been submitted. Our team will contact you shortly!"
         );
         // window.location.reload();
-        const userMessage =`Dear ${formData.name},, your appointment request has been submitted. Our team will contact you shortly! Stay tuned with us!!!`
-        const mechanicMessage =`Dear ${formData.mechanic}, you have a new appointment request. Our customer ${formData.name} is waiting for your response. Please log into your account at Car Clinic and check new request in mechanic portal. Thank you!!!`
-        await sendApprovalEmail(formData.email,userMessage);
-        await sendApprovalEmail(formData.mechanicEmail,mechanicMessage);
+        const userMessage = `Dear ${formData.name},, your appointment request has been submitted. Our team will contact you shortly! Stay tuned with us!!!`
+        const mechanicMessage = `Dear ${formData.mechanic}, you have a new appointment request. Our customer ${formData.name} is waiting for your response. Please log into your account at Car Clinic and check new request in mechanic portal. Thank you!!!`
+        await sendApprovalEmail(formData.email, userMessage);
+        await sendApprovalEmail(formData.mechanicEmail, mechanicMessage);
         setShowCalendar(false);
       }
 

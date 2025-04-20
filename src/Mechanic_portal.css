@@ -70,6 +70,62 @@ justify-content: center;
 align-items: center;
 }
 
+.topBarBody {
+  padding: 0px 15px;
+}
+
+.topBar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-toggle {
+  background-color: hsl(39, 70%, 25%);
+  color: white;
+  padding: 8px 16px;
+  font-size: 15px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.dropdown-menu {
+  position: absolute;
+  right: 0;
+  list-style: none;
+  padding: 0;
+  margin-top: 5px;
+  background-color: #111;
+  border: 1px solid #444;
+  border-radius: 4px;
+  min-width: 160px;
+  width: 185px;
+  z-index: 1;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+.dropdown-item {
+  width: 100%;
+  padding: 10px 15px;
+  background: none;
+  border: none;
+  text-align: center;
+  cursor: pointer;
+  color: white;
+}
+
+.dropdown-item:hover {
+  background-color: #222;
+}
+
+
+
 /* Navigation Bar Styling */
 .navbar {
   display: flex;

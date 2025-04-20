@@ -17,7 +17,7 @@ const SignUp = () => {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
-  const [specialty, setSpecialty] = useState('');
+  const [specialties, setSpecialties] = useState('');
   const [experience, setExperience] = useState('');
   const [paymentProof, setPaymentProof] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -27,6 +27,7 @@ const SignUp = () => {
     onConfirm: () => { },
   });
 
+  // eslint-disable-next-line
   const [availability, setAvailability] = useState({
     sunday: { selected: false, openHour: null, closeHour: null },
     monday: { selected: false, openHour: null, closeHour: null },
@@ -331,7 +332,7 @@ const SignUp = () => {
         email,
         phone,
         address,
-        specialty,
+        specialties,
         experience,
         role: "mechanic",
         status: "pending", // Mechanic request needs admin approval
@@ -450,7 +451,7 @@ const SignUp = () => {
                   <tr>
                     <td><label>Specialty:</label></td>
                     <td>
-                      <select value={specialty} onChange={(e) => setSpecialty(e.target.value)} required>
+                      <select value={specialties} onChange={(e) => setSpecialties(e.target.value)} required>
                         <option value="">Select Specialty</option>
                         <option value="Mechanic">Mechanic</option>
                         <option value="Electrician">Electrician</option>

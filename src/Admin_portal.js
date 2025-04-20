@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import './AdminPortal.css'; // Ensure CSS file is correctly imported
 import axios from 'axios';
 import emailjs from '@emailjs/browser';
-import { getDatabase, ref, remove } from 'firebase/database';
+import { getDatabase, ref, remove, get, update } from 'firebase/database';
 import CustomAlert from './CustomAlert';
 import ConfirmAlert from './ConfirmAlert';
 
@@ -14,8 +14,11 @@ const AdminPortal = () => {
   const [ratingsData, setRatingsData] = useState([]);
   const [usersData, setUsersData] = useState([]);
   const [mechanicsData, setMechanicsData] = useState([]);
+  const [mechanicsRequestData, setMechanicsRequestData] = useState([]);
   const [selectedMechanic, setSelectedMechanic] = useState(null);
   const [selectedMechanicID, setSelectedMechanicID] = useState("");
+  const [showApproveField, setShowApproveField] = useState(false);
+  const [showDeclineBox, setShowDeclineBox] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [showAdminConfirmation, setShowAdminConfirmation] = useState(false);
   const [showConfirmationBox, setShowConfirmationBox] = useState(false);
@@ -43,11 +46,14 @@ const AdminPortal = () => {
   };
 
   const approvedMechanicsFirebaseURL = 'https://car-clinic-9cc74-default-rtdb.firebaseio.com/approvedMechanics.json';
+  const MechanicsRequestFirebaseURL = 'https://car-clinic-9cc74-default-rtdb.firebaseio.com/mechanicRequests.json';
+
 
   const fetchMechanicsData = async () => {
     try {
       // Fetch pending mechanics
       const mechanicsResponse = await axios.get(mechanicsFirebaseURL);
+      
       const mechanicsArray = mechanicsResponse.data
         ? Object.entries(mechanicsResponse.data).map(([id, value]) => ({
           id,
@@ -68,6 +74,7 @@ const AdminPortal = () => {
 
       // Merge both arrays
       setMechanicsData([...mechanicsArray, ...approvedArray]);
+
     } catch (error) {
       console.error('Error fetching mechanics:', error);
     }
@@ -96,11 +103,22 @@ const AdminPortal = () => {
     }
   };
 
+  const fetchMechanicRequestsData = async () => {
+    try {
+      const response = await axios.get(MechanicsRequestFirebaseURL);
+      const requestArray = Object.values(response?.data || {});
+      setMechanicsRequestData(requestArray);
+    } catch (error) {
+      console.error('Error fetching mechanic requests:', error);
+    }
+  };
+
   useEffect(() => {
     fetchUsersData();
     fetchQueriesData();
     fetchRatingsData();
     fetchMechanicsData();
+    fetchMechanicRequestsData();
   }, []);
 
   const showAlert = (message, onConfirm) => {
@@ -135,7 +153,7 @@ const AdminPortal = () => {
     setShowAdminConfirmation(true);
     setSelectedMechanic(user);
     console.log(selectedMechanic);
-    
+
     setSetterId(uid)
   };
 
@@ -223,6 +241,71 @@ const AdminPortal = () => {
     setShowRejectionBox(false);
   };
 
+  const approveFieldRequest = (mechanic) => {
+    setShowApproveField(true);
+    setSelectedMechanic(mechanic);
+  };
+
+  const handleApproveField = async () => {
+    const { uid, newSpecialty } = selectedMechanic;
+    setShowApproveField(false);
+
+    try {
+      const approvedRef = ref(database, `approvedMechanics/${uid}`);
+      const snapshot = await get(approvedRef);
+
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        const currentSpecialties = data.specialties || [data.specialty];
+
+        if (!currentSpecialties.includes(newSpecialty)) {
+          currentSpecialties.push(newSpecialty);
+
+          await update(approvedRef, { specialties: currentSpecialties });
+        }
+
+        // Clean up the request
+        await remove(ref(database, `mechanicRequests/${uid}`));
+        showAlert("Mechanic specialty updated and request approved!");
+        fetchMechanicRequestsData();
+        const Message = `Dear ${selectedMechanic.name}, your request has been approved for adding a new field. You can now have a new speciality like ${newSpecialty} in your Bio data.`
+        await sendApprovalEmail(selectedMechanic.email, Message);
+      }
+    } catch (err) {
+      console.error("Approval error:", err);
+      showAlert("Failed to approve the field request.");
+    }
+  };
+
+  const handleApproveFieldCancel = () => {
+    setShowApproveField(false);
+  };
+
+  const handleRejectRequest = (mechanic) => {
+    setShowDeclineBox(true);
+    setSelectedMechanic(mechanic);
+  };
+
+  const handleDeclineBox = async () => {
+    const { uid } = selectedMechanic;
+    setShowDeclineBox(false);
+    try {
+      await remove(ref(database, `mechanicRequests/${uid}`));
+      showAlert('Mechanic request rejected!');
+      const Message = `Dear ${selectedMechanic.name}, your request has for adding a new field is rejected by the admin of Car Clinic. We are sorry for the inconveninence.`
+      await sendApprovalEmail(selectedMechanic.email, Message);
+      fetchMechanicRequestsData();
+      setSelectedMechanic(null);
+    } catch (error) {
+      console.error('Error rejecting mechanic:', error);
+      showAlert('Failed to reject mechanic request.');
+    }
+  };
+
+  const handleDeclineBoxCancel = () => {
+    setShowDeclineBox(false);
+  };
+
   const handleRemove = async (mechanic, id) => {
     setShowConfirmation(true);
     setSelectedMechanic(mechanic);
@@ -283,47 +366,78 @@ const AdminPortal = () => {
 
 
         {activeTable === 'mechanic' && (
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Phone Number</th>
-                <th>Experience</th>
-                <th>Field</th>
-                <th>Sign Up Fee</th>
-                <th>Address</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {mechanicsData.map((mechanic, index) => (
-                <tr key={index}>
-                  <td>{mechanic.name}</td>
-                  <td>{mechanic.email}</td>
-                  <td>{mechanic.phone}</td>
-                  <td>{mechanic.experience}</td>
-                  <td>{mechanic.specialty}</td>
-                  <td>
-                    <a href={mechanic.paymentProof} target="_blank" rel="noopener noreferrer">
-                      <button className="approve-btn">View</button>
-                    </a>
-                  </td>
-                  <td>{mechanic.address}</td>
-                  <td>
-                    {mechanic.status === 'pending' ? (
-                      <>
-                        <button className="approve-btn" onClick={() => handleApprove(mechanic)}>Approve</button>
-                        <button className="reject-btn" onClick={() => handleReject(mechanic, mechanic.id)}>Remove</button>
-                      </>
-                    ) : (
-                      <button className="reject-btn" onClick={() => handleRemove(mechanic, mechanic.id)}>Remove</button>
-                    )}
-                  </td>
+          <>
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Phone Number</th>
+                  <th>Experience</th>
+                  <th>Field</th>
+                  <th>Sign Up Fee</th>
+                  <th>Address</th>
+                  <th>Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {mechanicsData.map((mechanic, index) => (
+                  <tr key={index}>
+                    <td>{mechanic.name}</td>
+                    <td>{mechanic.email}</td>
+                    <td>{mechanic.phone}</td>
+                    <td>{mechanic.experience}</td>
+                    <td>{Array.isArray(mechanic.specialties) ? mechanic.specialties.join(', ') : mechanic.specialties}</td>
+                    <td>
+                      <a href={mechanic.paymentProof} target="_blank" rel="noopener noreferrer">
+                        <button className="approve-btn">View</button>
+                      </a>
+                    </td>
+                    <td>{mechanic.address}</td>
+                    <td>
+                      {mechanic.status === 'pending' ? (
+                        <>
+                          <button className="approve-btn" onClick={() => handleApprove(mechanic)}>Approve</button>
+                          <button className="reject-btn" onClick={() => handleReject(mechanic, mechanic.id)}>Remove</button>
+                        </>
+                      ) : (
+                        <button className="reject-btn" onClick={() => handleRemove(mechanic, mechanic.id)}>Remove</button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <br />
+            <br />
+            {mechanicsRequestData && mechanicsRequestData.length > 0 && (
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Mechanic Name</th>
+                    <th>Email</th>
+                    <th>Current Field</th>
+                    <th>New Field</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {mechanicsRequestData.map((mechanic, index) => (
+                    <tr key={index}>
+                      <td>{mechanic.name}</td>
+                      <td>{mechanic.email}</td>
+                      <td>{Array.isArray(mechanic.specialties) ? mechanic.specialties.join(', ') : mechanic.specialties}</td>
+                      <td>{mechanic.newSpecialty}</td>
+                      <td>
+                        <button className="approve-btn" onClick={() => approveFieldRequest(mechanic)}>Accept</button>
+                        <button className="reject-btn" onClick={() => handleRejectRequest(mechanic)} style={{ marginLeft: "10px" }}>Decline</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </>
         )}
 
         {activeTable === 'queries' && (
@@ -390,6 +504,20 @@ const AdminPortal = () => {
           message={"Are you sure to Remove this user?"}
           onConfirm={handleAdminConfirm}
           onCancel={handleAdminCancel}
+        />
+      )}
+      {showApproveField && (
+        <ConfirmAlert
+          message={"Are you sure to Accept this mechanic request for adding new field?"}
+          onConfirm={handleApproveField}
+          onCancel={handleApproveFieldCancel}
+        />
+      )}
+      {showDeclineBox && (
+        <ConfirmAlert
+          message={"Are you sure to Reject this mechanic request for adding new field?"}
+          onConfirm={handleDeclineBox}
+          onCancel={handleDeclineBoxCancel}
         />
       )}
       {showConfirmationBox && (

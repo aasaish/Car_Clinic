@@ -25,6 +25,7 @@ function App() {
   const [user, setUser] = useState(null);
   const [isAdmin, setAdmin] = useState(false);
   const [isMechanic, setIsMechanic] = useState(false);
+  const [mechanicData, setMechanicData] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -51,17 +52,26 @@ function App() {
       const db = getDatabase();
       const dbRef = ref(db, "approvedMechanics/" + uid);
       const snapshot = await get(dbRef);
-
+  
       if (snapshot.exists()) {
-        const userData = snapshot.val();
-        setIsMechanic(userData.role === "mechanic");
+        const data = snapshot.val();
+        if (data.role === "mechanic") {
+          setIsMechanic(true);
+          setMechanicData(data); // store mechanic data here
+        } else {
+          setIsMechanic(false);
+          setMechanicData(null);
+        }
       } else {
         setIsMechanic(false);
+        setMechanicData(null);
       }
     } catch (error) {
       setIsMechanic(false);
+      setMechanicData(null);
     }
   };
+  
 
   useEffect(() => {
     if (user && isAdmin) {
@@ -135,7 +145,7 @@ function App() {
             path="/mechanic_portal"
             element={
               <MechanicRoute user={user} isMechanic={isMechanic}>
-                <MechanicPortal user={user} setUser={setUser} />
+                <MechanicPortal user={user} setUser={setUser} mechanicData={mechanicData} setMechanicData={setMechanicData}/>
               </MechanicRoute>
             }
           />
