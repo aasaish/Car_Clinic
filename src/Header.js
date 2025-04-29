@@ -82,7 +82,7 @@ const Header = ({ user, setUser }) => {
   return (
     <nav>
       <img
-        src="/Logo.jpg" // Correct path to the image in the public folder
+        src="/logo.jpg" // Correct path to the image in the public folder
         alt="Logo"
         className="header-image"
       />
