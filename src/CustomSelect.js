@@ -5,20 +5,23 @@ import styles from './Confirmation.module.css';
 
 const SelectModal = ({ open, onClose, onConfirm, heading, currentField }) => {
     const [newField, setNewField] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
 
     if (!open) return null;
 
     const handleConfirm = () => {
+        setIsSubmitting(true);
         onConfirm(newField);
         setNewField("");
     };
 
     const options = ["Mechanic", "Electrician", "Dentor", "Painter"].filter(
         (field) => !Array.isArray(currentField)
-          ? field !== currentField
-          : !currentField.includes(field)
-      );
-      
+            ? field !== currentField
+            : !currentField.includes(field)
+    );
+
 
     return ReactDOM.createPortal(
         <div className={styles.overlay}>
@@ -37,7 +40,7 @@ const SelectModal = ({ open, onClose, onConfirm, heading, currentField }) => {
                     ))}
                 </select>
                 <div className={styles.buttonContainer}>
-                    <button className={styles.confirmButton} onClick={handleConfirm} disabled={!newField}>
+                    <button className={styles.confirmButton} onClick={handleConfirm} disabled={!newField || isSubmitting}>
                         OK
                     </button>
                     <button className={styles.cancelButton} onClick={onClose}>

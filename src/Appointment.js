@@ -357,7 +357,7 @@ const Appointment = ({ user, setUser }) => {
               <option value="">Select a mechanic</option>
               {filteredMechanics.map((mechanic, index) => (
                 <option key={index} value={mechanic.name}>
-                  {mechanic.name} - Rating: {mechanic.averageRating || "No rating yet"}/5.0
+                  {mechanic.name} - Rating: {mechanic.averageRating || "No rating yet"}/5.0 - Address: {mechanic.address} 
                 </option>
               ))}
             </select>
@@ -374,11 +374,6 @@ const Appointment = ({ user, setUser }) => {
                 <span>Visit Me</span>
               </div>
               <div>
-                {/* <input
-                  type="checkbox"
-                  value="I Will Visit"
-                  onChange={(e) => handleCheckboxChange(e, setVisitPreference)}
-                /> */}
                 <input type="radio" value="I Will Visit"
                   checked={formData.visitPreference === 'I Will Visit'}
                   onChange={() => handleRadioClick('I Will Visit')} />

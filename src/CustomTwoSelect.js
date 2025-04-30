@@ -5,10 +5,13 @@ import styles from './Confirmation.module.css';
 const SelectTwoModal = ({ open, onClose, onConfirm, heading, currentField }) => {
     const [fromField, setFromField] = useState("");
     const [toField, setToField] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
 
     if (!open) return null;
 
     const handleConfirm = () => {
+        setIsSubmitting(true);
         onConfirm(fromField, toField);
         setFromField("");
         setToField("");
@@ -56,7 +59,7 @@ const SelectTwoModal = ({ open, onClose, onConfirm, heading, currentField }) => 
                     <button
                         className={styles.confirmButton}
                         onClick={handleConfirm}
-                        disabled={!fromField || !toField}
+                        disabled={!fromField || !toField || isSubmitting}
                     >
                         OK
                     </button>

@@ -53,7 +53,7 @@ const AdminPortal = () => {
     try {
       // Fetch pending mechanics
       const mechanicsResponse = await axios.get(mechanicsFirebaseURL);
-      
+
       const mechanicsArray = mechanicsResponse.data
         ? Object.entries(mechanicsResponse.data).map(([id, value]) => ({
           id,
@@ -152,8 +152,6 @@ const AdminPortal = () => {
   const handleRemoveUser = async (user, uid) => {
     setShowAdminConfirmation(true);
     setSelectedMechanic(user);
-    console.log(selectedMechanic);
-
     setSetterId(uid)
   };
 

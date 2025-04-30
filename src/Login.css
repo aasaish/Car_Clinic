@@ -27,6 +27,19 @@ h1 {
   flex-direction: column;
 }
 
+.forgetPassword{
+  margin-bottom: 20px;
+}
+
+.forgetPassword a{
+  text-decoration: none;
+  color: hsl(39, 70%, 25%);
+}
+
+.forgetPassword a:hover{
+  color: aliceblue;
+}
+
 /* Form Group */
 .form-group {
   margin-bottom: 20px;

@@ -19,6 +19,8 @@ import { getDatabase, ref, get } from "firebase/database";
 import { onAuthStateChanged } from 'firebase/auth';
 import MyAppointments from './MyAppointments';
 import { PublicRoute, AdminRoute, MechanicRoute, UserOnlyRoute } from './ProtectedRoutes';
+import ForgetPassword from './forgetPassword';
+import ChangePassword from './ChangePassword';
 
 function App() {
 
@@ -52,7 +54,7 @@ function App() {
       const db = getDatabase();
       const dbRef = ref(db, "approvedMechanics/" + uid);
       const snapshot = await get(dbRef);
-  
+
       if (snapshot.exists()) {
         const data = snapshot.val();
         if (data.role === "mechanic") {
@@ -71,7 +73,7 @@ function App() {
       setMechanicData(null);
     }
   };
-  
+
 
   useEffect(() => {
     if (user && isAdmin) {
@@ -120,6 +122,24 @@ function App() {
           />
 
           <Route
+            path="/forgetPassword"
+            element={
+              <PublicRoute user={user}>
+                <ForgetPassword />
+              </PublicRoute>
+            }
+          />
+
+          <Route
+            path="/ChangePassword"
+            element={
+              <PublicRoute user={user}>
+                <ChangePassword />
+              </PublicRoute>
+            }
+          />
+
+          <Route
             path="/sign_up"
             element={
               <PublicRoute user={user}>
@@ -145,7 +165,7 @@ function App() {
             path="/mechanic_portal"
             element={
               <MechanicRoute user={user} isMechanic={isMechanic}>
-                <MechanicPortal user={user} setUser={setUser} mechanicData={mechanicData} setMechanicData={setMechanicData}/>
+                <MechanicPortal user={user} setUser={setUser} mechanicData={mechanicData} setMechanicData={setMechanicData} />
               </MechanicRoute>
             }
           />

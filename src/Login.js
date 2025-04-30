@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import './Login.css';
 import { signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword } from 'firebase/auth';
 import CustomAlert from './CustomAlert';
@@ -97,11 +97,17 @@ const Login = () => {
           />
         </div>
 
-          <div className="form-group">
-            <button type="button" className="login-btn google-btn" onClick={handleGoogleSignIn}>
-              Sign in with Google
-            </button>
-          </div>
+        <div className="forgetPassword">
+          <NavLink to="/forgetPassword">
+            Forget Password
+          </NavLink>
+        </div>
+
+        <div className="form-group">
+          <button type="button" className="login-btn google-btn" onClick={handleGoogleSignIn}>
+            Sign in with Google
+          </button>
+        </div>
 
         <div className="form-group">
           <button type="submit" className="login-btn">

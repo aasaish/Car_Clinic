@@ -4,10 +4,12 @@ import styles from './Confirmation.module.css'; // You’ll define this CSS modu
 
 const ChargesModal = ({ open, onClose, onConfirm, heading ,placeholderText}) => {
   const [charges, setCharges] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!open) return null;
 
   const handleConfirm = () => {
+    setIsSubmitting(true);
     onConfirm(charges);
     setCharges("");
   };
@@ -24,7 +26,7 @@ const ChargesModal = ({ open, onClose, onConfirm, heading ,placeholderText}) => 
           className={styles.input}
         />
         <div className={styles.buttonContainer}>
-          <button className={styles.confirmButton} onClick={handleConfirm}>
+          <button className={styles.confirmButton} onClick={handleConfirm} disabled={isSubmitting}>
             OK
           </button>
           <button className={styles.cancelButton} onClick={onClose}>
