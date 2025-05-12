@@ -4,6 +4,8 @@ import './Login.css';
 import { signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword } from 'firebase/auth';
 import CustomAlert from './CustomAlert';
 import { auth } from './firebase';
+import emailjs from '@emailjs/browser';
+
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -24,12 +26,33 @@ const Login = () => {
     setAlert({ show: false, message: '', onConfirm: () => { } });
   };
 
+  const sendApprovalEmail = async (email, messagebody) => {
+    const templateParams = {
+      to_email: email,
+      message: messagebody,
+    };
+
+    try {
+      await emailjs.send(
+        'service_8kgv9m8',     // Replace with your Email.js service ID
+        'template_bpruqj9',    // Replace with your Email.js template ID
+        templateParams,
+        'YXs-aMceIqko1PuHu'      // Replace with your Email.js public key
+      );
+      console.log('Approval email sent successfully');
+    } catch (error) {
+      console.error('Error sending email:', error);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email.toLowerCase(), password);
       showAlert(`${userCredential.name} logged in successfully`);
+      const userMessage = `Welcome to our Car Clinic system. You have been successfully Login in Car Clinic. Enjoy the flawless services and experience!!!`
+      await sendApprovalEmail(email, userMessage);
 
     } catch (error) {
       console.error('Error signing in:', error.code, error.message);
@@ -63,6 +86,8 @@ const Login = () => {
       const result = await signInWithPopup(auth, provider);
       console.log('Google Sign-In Successful:', result.user);
       showAlert(`Logged in with Google as: ${result.user.email}`);
+      const userMessage = `Welcome to our Car Clinic system. You have been successfully Login in Car Clinic. Enjoy the flawless services and experience!!!`
+      await sendApprovalEmail(result.user.email, userMessage);
       navigate('/');
     } catch (error) {
       console.error('Error signing in with Google:', error);

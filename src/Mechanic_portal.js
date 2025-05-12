@@ -992,19 +992,20 @@ const MechanicPortal = ({ user, setUser, mechanicData, setMechanicData }) => {
           onConfirm={async (charges) => {
             if (charges === "") {
               showAlert('Charges cannot be empty!');
+              setChargesModalOpen(false);
               return;
             }
-            setChargesModalOpen(false);
             try {
               const updateURL = `https://car-clinic-9cc74-default-rtdb.firebaseio.com/appointments/${selectedForCharges.id}.json`;
               await axios.patch(updateURL, {
                 status: "completed",
                 charges,
               });
-              fetchAppointments();
+              setChargesModalOpen(false);
               const userMessage = `Dear ${selectedForCharges.name}, your appointment request for services has been completed by the mechanic ${selectedForCharges.mechanic}. Please give ratings to your mechanic depends on the service provided by log into your account in Car Clinic and go to My Appointments. Thank you for your trust!!!`
               await sendApprovalEmail(selectedForCharges.email, userMessage);
-
+              fetchAppointments(user.email);
+              setSelectedForCharges(null);
             } catch (error) {
               console.error("Error updating status/charges:", error);
             }

@@ -353,7 +353,7 @@ const SignUp = () => {
       const userMessage = `Dear ${mechanicData.name}, your request is successfully submitted. Now you have to wait for the approval from admin of Car Clinic. Thanks for trusting us!!!`
       await sendApprovalEmail(mechanicData.email, userMessage);
       const adminMessage = `Dear Admin of Car Clinic, you have got a new request from mechanic who is waiting for your approval. Please go to your Admin Portal and proceed accordingly.`
-      const adminEmail = "malikmani156.mm@gmail.com"
+      const adminEmail = "aasaish@growthguild.us"
       await sendApprovalEmail(adminEmail, adminMessage);
       setIsSubmitting(false);
       window.location.reload();

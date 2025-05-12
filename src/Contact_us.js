@@ -55,7 +55,7 @@ const ContactUs = () => {
       console.error("Error adding item:", error);
     }
     const adminMessage = `Dear Admin of Car Clinic, you have got a new complaint from one of the customer. Please go to your Admin Portal and proceed accordingly.`
-    const adminEmail = "malikmani156.mm@gmail.com"
+    const adminEmail = "aasaish@growthguild.us"
     await sendApprovalEmail(adminEmail, adminMessage);
     setFormData({ name: "", email: "", phone: "", complaint: "", message: "" });
     setShowConfirmation(true);
