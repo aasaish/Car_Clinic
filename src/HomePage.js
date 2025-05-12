@@ -73,7 +73,7 @@ console.log(response.data);
     <div className="home-page">
       <div className="content">
         <div className="intro">
-          <h1>Repair Service</h1>
+          <h1>Repair Services</h1>
           <h2>We offer the best repair services</h2>
           <button onClick={handleBookAppointment}>Book Appointment</button>
         </div>
