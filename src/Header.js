@@ -23,7 +23,7 @@ const Header = ({ user, setUser }) => {
       return;
     }
 
-    setAdmin(user.email === "admin@gmail.com"); // Check if admin
+    setAdmin(user.email === "aasaish@growthguild.us"); // Check if admin
 
     checkIfMechanic(user.uid); // Check if mechanic
   }, [user]);
