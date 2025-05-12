@@ -45,7 +45,7 @@ function App() {
       return;
     }
 
-    setAdmin(user.email === "admin@gmail.com");
+    setAdmin(user.email === "aasaish@growthguild.us");
     checkIfMechanic(user.uid);
   }, [user]);
 
