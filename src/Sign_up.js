@@ -444,6 +444,7 @@ const SignUp = () => {
             <form onSubmit={handleSubmitAPI} className="signup-form">
               <table>
                 <tbody>
+                  <tr><td><label> Registration fees is Rs 5000/- </label></td></tr>
                   <tr><td><label>Name:</label></td><td><input type="text" value={name} onChange={(e) => setName(e.target.value)} required /></td></tr>
                   <tr><td><label>Email:</label></td><td><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></td></tr>
                   <tr><td><label>Phone Number:</label></td><td><input type="number" value={phone} onChange={(e) => setPhone(e.target.value)} required /></td></tr>
@@ -461,7 +462,7 @@ const SignUp = () => {
                     </td>
                   </tr>
                   <tr><td><label>Experience:</label></td><td><input type="text" value={experience} onChange={(e) => setExperience(e.target.value)} required /></td></tr>
-                  <tr><td><label>Payment Proof</label></td>
+                  <tr><td><label>Payment Proof </label></td>
                     <td>
                       <input
                         type="file"
