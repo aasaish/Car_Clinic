@@ -6,13 +6,11 @@ import styles from './Confirmation.module.css';
 const PasswordModal = ({ open, onClose, onConfirm, heading }) => {
     const [currentPassword, setCurrentPassword] = useState("");
     const [newPassword, setNewPassword] = useState("");
-    const [isSubmitting, setIsSubmitting] = useState(false);
 
 
     if (!open) return null;
 
     const handleConfirm = () => {
-        setIsSubmitting(true);
         onConfirm(currentPassword, newPassword);
         setNewPassword("");
         setCurrentPassword("");
@@ -37,7 +35,7 @@ const PasswordModal = ({ open, onClose, onConfirm, heading }) => {
                     className={styles.input}
                 />
                 <div className={styles.buttonContainer}>
-                    <button className={styles.confirmButton} onClick={handleConfirm} disabled={isSubmitting}>
+                    <button className={styles.confirmButton} onClick={handleConfirm} >
                         OK
                     </button>
                     <button className={styles.cancelButton} onClick={onClose}>

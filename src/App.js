@@ -156,7 +156,7 @@ function App() {
             path="/admin_portal"
             element={
               <AdminRoute user={user} isAdmin={isAdmin}>
-                <AdminPortal />
+                <AdminPortal user={user} setUser={setUser}/>
               </AdminRoute>
             }
           />

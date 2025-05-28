@@ -1,12 +1,16 @@
 import React, { useEffect, useState } from 'react';
+import { reauthenticateWithCredential, EmailAuthProvider, updatePassword } from "firebase/auth";
+import { auth } from './firebase';
 import './AdminPortal.css'; // Ensure CSS file is correctly imported
 import axios from 'axios';
 import emailjs from '@emailjs/browser';
 import { getDatabase, ref, remove, get, update } from 'firebase/database';
 import CustomAlert from './CustomAlert';
 import ConfirmAlert from './ConfirmAlert';
+import NameModal from "./CustomInputText";
+import PasswordModal from "./CustomInputPassword";
 
-const AdminPortal = () => {
+const AdminPortal = ({ user, setUser }) => {
   const database = getDatabase();
   // State to handle active table view
   const [activeTable, setActiveTable] = useState('user'); // Default table view is 'user'
@@ -23,6 +27,9 @@ const AdminPortal = () => {
   const [showAdminConfirmation, setShowAdminConfirmation] = useState(false);
   const [showConfirmationBox, setShowConfirmationBox] = useState(false);
   const [showRejectionBox, setShowRejectionBox] = useState(false);
+  const [newUsername, setnewUsername] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const [setterId, setSetterId] = useState("");
   const [alert, setAlert] = useState({
     show: false,
@@ -327,219 +334,342 @@ const AdminPortal = () => {
     setShowConfirmation(false);
   };
 
+  const handleUpdateUserName = async (newName) => {
+    setnewUsername(false);
+
+    if (newName === "") {
+      showAlert('Username cannot be empty!');
+      return;
+    }
+
+    if (newName === user?.displayName) {
+      showAlert('New username cannot be same as current username!');
+      return;
+    }
+
+    try {
+      const response = await fetch("https://car-clinic-backend.onrender.com/updateUserName", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          uid: user.uid, // Pass the user's UID here
+          newName: newName,
+        }),
+      });
+
+      const result = await response.json();
+      if (response.ok) {
+        console.log("User name updated:", result.user);
+        showAlert('Name updated successfully!');
+        const Message = `Dear ${user.displayName}, your request for change of username is accepted successfully. Your new user name will be "${newName}". Thank you for your time!!!`
+        await sendApprovalEmail(user.email, Message);
+      } else {
+        showAlert('Failed to update name');
+      }
+    } catch (err) {
+      console.error(err);
+      showAlert('Something went wrong');
+    }
+  };
+
+  const handlePasswordChange = async (currentPassword, newPassword) => {
+    setShowPasswordModal(false);
+    const user = auth.currentUser;
+
+    if (!user?.email) {
+      showAlert('User not found or not logged in.');
+      return;
+    }
+
+    if (currentPassword === newPassword) {
+      showAlert('New password cannot be same as current password!');
+      return;
+    }
+
+    const credential = EmailAuthProvider.credential(user.email, currentPassword);
+
+    try {
+      // Step 1: Re-authenticate the user
+      await reauthenticateWithCredential(user, credential);
+      console.log("Re-authentication successful");
+
+      // Step 2: Update the password
+      await updatePassword(user, newPassword);
+      showAlert('Password updated successfully!');
+      const Message = `Dear ${user.displayName}, your request for change of password is accepted successfully. You can now log into your account with new password. Thank you for your time!!!`
+      await sendApprovalEmail(user.email, Message);
+    } catch (error) {
+      console.error("Error updating password:", error);
+      if (error.code === 'auth/wrong-password') {
+        showAlert('Current password is incorrect.');
+      } else if (error.code === 'auth/weak-password') {
+        showAlert('New password is too weak.');
+      } else {
+        showAlert('Failed to update password.');
+      }
+    }
+  };
+
+  const toggleDropdown = () => {
+    setIsOpen(prev => !prev);
+  };
+
+  const handleItemClick = () => {
+    setIsOpen(false); // close after clicking
+  };
+
   return (
-    <div className="admin-portal">
-      <div className="sidebar">
-        <button onClick={() => setActiveTable('user')}>Users</button>
-        <button onClick={() => setActiveTable('mechanic')}>Mechanics</button>
-        <button onClick={() => setActiveTable('queries')}>Queries</button>
-        <button onClick={() => setActiveTable('ratings')}>Ratings</button>
+    <>
+      <div className="topBarBody">
+        <div className="topBar">
+          <div className="dropdown">
+            <button className="dropdown-toggle" onClick={toggleDropdown}>
+              Settings
+            </button>
+            {isOpen && (
+              <ul className="dropdown-menu">
+                <li>
+                  <button className="dropdown-item" onClick={() => { setnewUsername(true); handleItemClick() }}>
+                    Change Username
+                  </button>
+                </li>
+                <li>
+                  <button className="dropdown-item" onClick={() => { setShowPasswordModal(true); handleItemClick() }}>
+                    Change Password
+                  </button>
+                </li>
+              </ul>
+            )}
+          </div>
+        </div>
       </div>
+      <div className="admin-portal">
+        <div className="sidebar">
+          <button onClick={() => setActiveTable('user')}>Users</button>
+          <button onClick={() => setActiveTable('mechanic')}>Mechanics</button>
+          <button onClick={() => setActiveTable('queries')}>Queries</button>
+          <button onClick={() => setActiveTable('ratings')}>Ratings</button>
+        </div>
 
-      <div className="table-container">
-        {activeTable === 'user' && (
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                {/* <th>Phone Number</th> */}
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {usersData.map((user, index) => (
-                <tr key={index}>
-                  <td>{user.name}</td>
-                  <td>{user.email}</td>
-                  {/* <td>{user.phone}</td> */}
-                  <td>
-                    <button className="reject-btn" onClick={() => handleRemoveUser(user, user.uid)}>Remove</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-
-
-        {activeTable === 'mechanic' && (
-          <>
+        <div className="table-container">
+          {activeTable === 'user' && (
             <table className="data-table">
               <thead>
                 <tr>
                   <th>Name</th>
                   <th>Email</th>
-                  <th>Phone Number</th>
-                  <th>Experience</th>
-                  <th>Field</th>
-                  <th>Sign Up Fee</th>
-                  <th>Address</th>
+                  {/* <th>Phone Number</th> */}
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {mechanicsData.map((mechanic, index) => (
+                {usersData.map((user, index) => (
                   <tr key={index}>
-                    <td>{mechanic.name}</td>
-                    <td>{mechanic.email}</td>
-                    <td>{mechanic.phone}</td>
-                    <td>{mechanic.experience}</td>
-                    <td>{Array.isArray(mechanic.specialties) ? mechanic.specialties.join(', ') : mechanic.specialties}</td>
+                    <td>{user.name}</td>
+                    <td>{user.email}</td>
+                    {/* <td>{user.phone}</td> */}
                     <td>
-                      <a href={mechanic.paymentProof} target="_blank" rel="noopener noreferrer">
-                        <button className="approve-btn">View</button>
-                      </a>
-                    </td>
-                    <td>{mechanic.address}</td>
-                    <td>
-                      {mechanic.status === 'pending' ? (
-                        <>
-                          <button className="approve-btn" onClick={() => handleApprove(mechanic)}>Approve</button>
-                          <button className="reject-btn" onClick={() => handleReject(mechanic, mechanic.id)}>Remove</button>
-                        </>
-                      ) : (
-                        <button className="reject-btn" onClick={() => handleRemove(mechanic, mechanic.id)}>Remove</button>
-                      )}
+                      <button className="reject-btn" onClick={() => handleRemoveUser(user, user.uid)}>Remove</button>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            <br />
-            <br />
-            {mechanicsRequestData && mechanicsRequestData.length > 0 && (
+          )}
+
+
+          {activeTable === 'mechanic' && (
+            <>
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>Mechanic Name</th>
+                    <th>Name</th>
                     <th>Email</th>
-                    <th>Current Field</th>
-                    <th>New Field</th>
+                    <th>Phone Number</th>
+                    <th>Experience</th>
+                    <th>Field</th>
+                    <th>Sign Up Fee</th>
+                    <th>Address</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {mechanicsRequestData.map((mechanic, index) => (
+                  {mechanicsData.map((mechanic, index) => (
                     <tr key={index}>
                       <td>{mechanic.name}</td>
                       <td>{mechanic.email}</td>
+                      <td>{mechanic.phone}</td>
+                      <td>{mechanic.experience}</td>
                       <td>{Array.isArray(mechanic.specialties) ? mechanic.specialties.join(', ') : mechanic.specialties}</td>
-                      <td>{mechanic.newSpecialty}</td>
                       <td>
-                        <button className="approve-btn" onClick={() => approveFieldRequest(mechanic)}>Accept</button>
-                        <button className="reject-btn" onClick={() => handleRejectRequest(mechanic)} style={{ marginLeft: "10px" }}>Decline</button>
+                        <a href={mechanic.paymentProof} target="_blank" rel="noopener noreferrer">
+                          <button className="approve-btn">View</button>
+                        </a>
+                      </td>
+                      <td>{mechanic.address}</td>
+                      <td>
+                        {mechanic.status === 'pending' ? (
+                          <>
+                            <button className="approve-btn" onClick={() => handleApprove(mechanic)}>Approve</button>
+                            <button className="reject-btn" onClick={() => handleReject(mechanic, mechanic.id)}>Remove</button>
+                          </>
+                        ) : (
+                          <button className="reject-btn" onClick={() => handleRemove(mechanic, mechanic.id)}>Remove</button>
+                        )}
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            )}
-          </>
-        )}
+              <br />
+              <br />
+              {mechanicsRequestData && mechanicsRequestData.length > 0 && (
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Mechanic Name</th>
+                      <th>Email</th>
+                      <th>Current Field</th>
+                      <th>New Field</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {mechanicsRequestData.map((mechanic, index) => (
+                      <tr key={index}>
+                        <td>{mechanic.name}</td>
+                        <td>{mechanic.email}</td>
+                        <td>{Array.isArray(mechanic.specialties) ? mechanic.specialties.join(', ') : mechanic.specialties}</td>
+                        <td>{mechanic.newSpecialty}</td>
+                        <td>
+                          <button className="approve-btn" onClick={() => approveFieldRequest(mechanic)}>Accept</button>
+                          <button className="reject-btn" onClick={() => handleRejectRequest(mechanic)} style={{ marginLeft: "10px" }}>Decline</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </>
+          )}
 
-        {activeTable === 'queries' && (
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Phone Number</th>
-                <th>Email</th>
-                <th>Complaint</th>
-                <th>Query</th>
-              </tr>
-            </thead>
-            <tbody>
-              {queriesData.map((query, index) => (
-                <tr key={index}>
-                  <td>{query?.name}</td>
-                  <td>{query?.phone}</td>
-                  <td>{query?.email}</td>
-                  <td>{query?.complaint}</td>
-                  <td>{query?.message}</td>
+          {activeTable === 'queries' && (
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Phone Number</th>
+                  <th>Email</th>
+                  <th>Complaint</th>
+                  <th>Query</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+              </thead>
+              <tbody>
+                {queriesData.map((query, index) => (
+                  <tr key={index}>
+                    <td>{query?.name}</td>
+                    <td>{query?.phone}</td>
+                    <td>{query?.email}</td>
+                    <td>{query?.complaint}</td>
+                    <td>{query?.message}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
 
-        {activeTable === 'ratings' && (
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Mechanic Name</th>
-                <th>Rating</th>
-                <th>Comments</th>
-              </tr>
-            </thead>
-            <tbody>
-              {ratingsData.map((rating, index) => (
-                <tr key={index}>
-                  <td>{rating?.mechanicName}</td>
-                  <td>{rating?.rating}</td>
-                  <td>{rating?.comments}</td>
+          {activeTable === 'ratings' && (
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Mechanic Name</th>
+                  <th>Rating</th>
+                  <th>Comments</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {ratingsData.map((rating, index) => (
+                  <tr key={index}>
+                    <td>{rating?.mechanicName}</td>
+                    <td>{rating?.rating}</td>
+                    <td>{rating?.comments}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+        {alert.show && (
+          <CustomAlert
+            message={alert.message}
+            onConfirm={() => {
+              if (typeof alert.onConfirm === "function") {
+                alert.onConfirm(); // Execute the stored function
+              }
+              closeAlert(); // Close alert after confirmation
+            }}
+            onCancel={closeAlert}
+            buttonLabel="OK"
+          />
         )}
+        {showAdminConfirmation && (
+          <ConfirmAlert
+            message={"Are you sure to Remove this user?"}
+            onConfirm={handleAdminConfirm}
+            onCancel={handleAdminCancel}
+          />
+        )}
+        {showApproveField && (
+          <ConfirmAlert
+            message={"Are you sure to Accept this mechanic request for adding new field?"}
+            onConfirm={handleApproveField}
+            onCancel={handleApproveFieldCancel}
+          />
+        )}
+        {showDeclineBox && (
+          <ConfirmAlert
+            message={"Are you sure to Reject this mechanic request for adding new field?"}
+            onConfirm={handleDeclineBox}
+            onCancel={handleDeclineBoxCancel}
+          />
+        )}
+        {showConfirmationBox && (
+          <ConfirmAlert
+            message={"Are you sure to Accept this mechanic request?"}
+            onConfirm={handleConfirmationBox}
+            onCancel={handleConfirmationBoxCancel}
+          />
+        )}
+        {showRejectionBox && (
+          <ConfirmAlert
+            message={"Are you sure to Reject this mechanic request?"}
+            onConfirm={handleRejectionBox}
+            onCancel={handleRejectionBoxCancel}
+          />
+        )}
+        {showConfirmation && (
+          <ConfirmAlert
+            message={"Are you sure to Remove this mechanic?"}
+            onConfirm={handleConfirm}
+            onCancel={handleCancel}
+          />
+        )}
+        <NameModal
+          open={newUsername}
+          onClose={() => setnewUsername(false)}
+          onConfirm={handleUpdateUserName}
+          heading={"Change Username:"}
+          placeholderText={"Enter New Name Here:"}
+        />
+
+        <PasswordModal
+          open={showPasswordModal}
+          onClose={() => setShowPasswordModal(false)}
+          onConfirm={handlePasswordChange}
+          heading="Change Your Password"
+        />
       </div>
-      {alert.show && (
-        <CustomAlert
-          message={alert.message}
-          onConfirm={() => {
-            if (typeof alert.onConfirm === "function") {
-              alert.onConfirm(); // Execute the stored function
-            }
-            closeAlert(); // Close alert after confirmation
-          }}
-          onCancel={closeAlert}
-          buttonLabel="OK"
-        />
-      )}
-      {showAdminConfirmation && (
-        <ConfirmAlert
-          message={"Are you sure to Remove this user?"}
-          onConfirm={handleAdminConfirm}
-          onCancel={handleAdminCancel}
-        />
-      )}
-      {showApproveField && (
-        <ConfirmAlert
-          message={"Are you sure to Accept this mechanic request for adding new field?"}
-          onConfirm={handleApproveField}
-          onCancel={handleApproveFieldCancel}
-        />
-      )}
-      {showDeclineBox && (
-        <ConfirmAlert
-          message={"Are you sure to Reject this mechanic request for adding new field?"}
-          onConfirm={handleDeclineBox}
-          onCancel={handleDeclineBoxCancel}
-        />
-      )}
-      {showConfirmationBox && (
-        <ConfirmAlert
-          message={"Are you sure to Accept this mechanic request?"}
-          onConfirm={handleConfirmationBox}
-          onCancel={handleConfirmationBoxCancel}
-        />
-      )}
-      {showRejectionBox && (
-        <ConfirmAlert
-          message={"Are you sure to Reject this mechanic request?"}
-          onConfirm={handleRejectionBox}
-          onCancel={handleRejectionBoxCancel}
-        />
-      )}
-      {showConfirmation && (
-        <ConfirmAlert
-          message={"Are you sure to Remove this mechanic?"}
-          onConfirm={handleConfirm}
-          onCancel={handleCancel}
-        />
-      )}
-    </div>
+    </>
   );
 };
 

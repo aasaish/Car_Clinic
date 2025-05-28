@@ -8,9 +8,11 @@ import ShowDetails from "./ShowDetails";
 import ConfirmAlert from './ConfirmAlert';
 import ChargesModal from "./CustomInput";
 import NameModal from "./CustomInputText";
+import EmailModal from "./CustomInputText";
 import PasswordModal from "./CustomInputPassword";
 import SelectModal from "./CustomSelect";
 import SelectTwoModal from "./CustomTwoSelect";
+import RemoveFieldModal from './CustomeSelectRemove';
 import { Button, Checkbox, Dialog, DialogTitle, DialogContent, DialogActions, TextField, FormControl, Select, MenuItem, InputLabel } from "@mui/material";
 import { getAuth, onAuthStateChanged, reauthenticateWithCredential, EmailAuthProvider, updatePassword } from "firebase/auth";
 import { auth, database } from './firebase';
@@ -26,6 +28,7 @@ const MechanicPortal = ({ user, setUser, mechanicData, setMechanicData }) => {
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [userEmail, setUserEmail] = useState(null);
   const [openSelectFieldModal, setOpenSelectFieldModal] = useState(false);
+  const [openRemoveFieldModal, setOpenRemoveFieldModal] = useState(false);
   const [fieldRequestModal, setFieldRequestModal] = useState(false);
   const [chargesModalOpen, setChargesModalOpen] = useState(false);
   const [selectedForCharges, setSelectedForCharges] = useState(null);
@@ -33,6 +36,7 @@ const MechanicPortal = ({ user, setUser, mechanicData, setMechanicData }) => {
   const [showDetail, setShowDetail] = useState(false);
   const [selectedAppointments, setSelectedAppointments] = useState(null);
   const [selectedDays, setSelectedDays] = useState({});
+  const [newEmailModal, setNewEmailModal] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [currentDay, setCurrentDay] = useState(null);
   const [timeInputs, setTimeInputs] = useState({ openHour: "", closeHour: "" });
@@ -117,6 +121,45 @@ const MechanicPortal = ({ user, setUser, mechanicData, setMechanicData }) => {
       showAlert('Something went wrong');
     }
   };
+
+  const handleUpdateEmail = async (newEmail) => {
+    setNewEmailModal(false);
+
+    if (!newEmail) {
+      showAlert('Email cannot be empty!');
+      return;
+    }
+
+    if (newEmail === user?.email) {
+      showAlert('New email cannot be same as current email!');
+      return;
+    }
+
+    try {
+      const response = await fetch("https://car-clinic-backend.onrender.com/updateUserEmail", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          uid: user.uid,
+          newEmail,
+        }),
+      });
+
+      const result = await response.json();
+      if (response.ok) {
+        console.log("User name updated:", result.user);
+        showAlert('Email updated successfully!');
+        const Message = `Dear ${user.displayName}, your request for change of email is accepted successfully. Your new email will be "${newEmail}". Thank you for your time!!!`;
+        await sendApprovalEmail(newEmail, Message);
+      } else {
+        showAlert('Failed to update email');
+      }
+    } catch (err) {
+      console.error(err);
+      showAlert('Something went wrong');
+    }
+  };
+
 
   const handlePasswordChange = async (currentPassword, newPassword) => {
     setShowPasswordModal(false);
@@ -207,6 +250,41 @@ const MechanicPortal = ({ user, setUser, mechanicData, setMechanicData }) => {
     } catch (error) {
       console.error("Error updating specialty:", error);
       showAlert("Failed to update specialty.");
+    }
+  };
+
+  const handleRemoveField = async (fieldToRemove) => {
+    setFieldRequestModal(false);
+
+    const currentSpecialties = Array.isArray(mechanicData?.specialties)
+      ? mechanicData.specialties
+      : [mechanicData?.specialties];
+
+    if (!fieldToRemove || !currentSpecialties.includes(fieldToRemove)) {
+      showAlert("Please select a valid field to remove.");
+      return;
+    }
+
+    if (currentSpecialties.length <= 1) {
+      showAlert("You must have at least one specialty.");
+      return;
+    }
+
+    const updatedSpecialties = currentSpecialties.filter(field => field !== fieldToRemove);
+
+    try {
+      const mechanicRef = ref(database, `approvedMechanics/${user.uid}`);
+      await update(mechanicRef, { specialties: updatedSpecialties });
+
+      setMechanicData({ ...mechanicData, specialties: updatedSpecialties });
+      showAlert(`Field "${fieldToRemove}" removed successfully.`);
+
+      const Message = `Dear ${user.displayName}, your field "${fieldToRemove}" has been removed successfully. You now have the following specialties: ${updatedSpecialties.join(', ')}. Thank you!`;
+      await sendApprovalEmail(user.email, Message);
+      setOpenRemoveFieldModal(false)
+    } catch (error) {
+      console.error("Error removing field:", error);
+      showAlert("Failed to remove field.");
     }
   };
 
@@ -671,6 +749,26 @@ const MechanicPortal = ({ user, setUser, mechanicData, setMechanicData }) => {
                   </button>
                 </li>
                 <li>
+                  <button className="dropdown-item" onClick={() => { setNewEmailModal(true); handleItemClick() }}>
+                    Change Email
+                  </button>
+                </li>
+                <li>
+                  <button className="dropdown-item" onClick={() => { handleItemClick() }}>
+                    Change Phone Number
+                  </button>
+                </li>
+                <li>
+                  <button className="dropdown-item" onClick={() => { handleItemClick() }}>
+                    Change Address
+                  </button>
+                </li>
+                <li>
+                  <button className="dropdown-item" onClick={() => { handleItemClick() }}>
+                    Change Experience
+                  </button>
+                </li>
+                <li>
                   <button className="dropdown-item" onClick={() => { setOpenSelectFieldModal(true); handleItemClick() }}>
                     Change Field
                   </button>
@@ -678,6 +776,11 @@ const MechanicPortal = ({ user, setUser, mechanicData, setMechanicData }) => {
                 <li>
                   <button className="dropdown-item" onClick={() => { setFieldRequestModal(true); handleItemClick(); }}>
                     Request for Another Field
+                  </button>
+                </li>
+                <li>
+                  <button className="dropdown-item" onClick={() => { setOpenRemoveFieldModal(true); handleItemClick(); }}>
+                    Remove Field
                   </button>
                 </li>
                 <li>
@@ -1051,6 +1154,14 @@ const MechanicPortal = ({ user, setUser, mechanicData, setMechanicData }) => {
           placeholderText={"Enter New Name Here:"}
         />
 
+        <EmailModal
+          open={newEmailModal}
+          onClose={() => setNewEmailModal(false)}
+          onConfirm={handleUpdateEmail}
+          heading={"Change Email:"}
+          placeholderText={"Enter New Email Here:"}
+        />
+
         <PasswordModal
           open={showPasswordModal}
           onClose={() => setShowPasswordModal(false)}
@@ -1073,6 +1184,15 @@ const MechanicPortal = ({ user, setUser, mechanicData, setMechanicData }) => {
           heading="Request for Another Field:"
           currentField={mechanicData?.specialties}
         />
+
+        <RemoveFieldModal
+          open={openRemoveFieldModal}
+          onClose={() => setOpenRemoveFieldModal(false)}
+          onConfirm={handleRemoveField}
+          heading="Remove Your Field:"
+          currentFields={mechanicData?.specialties}
+        />
+
 
       </div>
     </>

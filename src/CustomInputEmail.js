@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import styles from './Confirmation.module.css';
 
 
-const NameModal = ({ open, onClose, onConfirm, heading, placeholderText }) => {
+const EmailModal = ({ open, onClose, onConfirm, heading, placeholderText }) => {
   const [newName, setNewName] = useState("");
 
 
@@ -19,7 +19,7 @@ const NameModal = ({ open, onClose, onConfirm, heading, placeholderText }) => {
       <div className={styles.modal}>
         <h2>{heading}</h2>
         <input
-          type="text"
+          type="email"
           placeholder={placeholderText}
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
@@ -39,4 +39,4 @@ const NameModal = ({ open, onClose, onConfirm, heading, placeholderText }) => {
   );
 };
 
-export default NameModal;
+export default EmailModal;

@@ -143,8 +143,28 @@ const Appointment = ({ user, setUser }) => {
     }
   };
 
+  const showAlert = (message, onConfirm) => {
+    setAlert({ show: true, message, onConfirm });
+  };
+
+  // Function to close alert
+  const closeAlert = () => {
+    setAlert({ show: false, message: '', onConfirm: () => { } });
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
+
+    if (name === "mobile") {
+    // Allow only numbers, max 11 characters
+    if (/^\d{0,11}$/.test(value)) {
+      setFormData((prevData) => ({
+        ...prevData,
+        [name]: value,
+      }));
+    }
+    return; // Exit early for mobile field
+  }
 
     // If the selected field is 'mechanic', also update the calendar link
     if (name === "mechanic") {
@@ -165,14 +185,6 @@ const Appointment = ({ user, setUser }) => {
     }
   };
 
-  const showAlert = (message, onConfirm) => {
-    setAlert({ show: true, message, onConfirm });
-  };
-
-  // Function to close alert
-  const closeAlert = () => {
-    setAlert({ show: false, message: '', onConfirm: () => { } });
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -274,10 +286,15 @@ const Appointment = ({ user, setUser }) => {
           <div className="labels">
             <label>Mobile Number:</label>
             <input
-              type="number"
+              type="tel"
               name="mobile"
               value={formData.mobile}
               onChange={handleChange}
+              inputMode="numeric"
+              pattern="\d{11}"
+              maxLength="11"
+              minLength="11"
+              title="Phone number must be exactly 11 digits"
               required
             />
           </div>
@@ -357,7 +374,7 @@ const Appointment = ({ user, setUser }) => {
               <option value="">Select a mechanic</option>
               {filteredMechanics.map((mechanic, index) => (
                 <option key={index} value={mechanic.name}>
-                  {mechanic.name} - Rating: {mechanic.averageRating || "No rating yet"}/5.0 - Address: {mechanic.address} 
+                  {mechanic.name} - Rating: {mechanic.averageRating || "No rating yet"}/5.0 - Address: {mechanic.address}
                 </option>
               ))}
             </select>

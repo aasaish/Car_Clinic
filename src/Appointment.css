@@ -61,6 +61,7 @@ h1 {
 .appointment-form input[type="text"],
 .appointment-form input[type="email"],
 .appointment-form input[type="number"],
+.appointment-form input[type="tel"],
 .appointment-form textarea,
 .appointment-form select{
   width: 100%;

@@ -119,6 +119,10 @@ const SignUp = () => {
       showAlert('Passwords do not match!');
       return;
     }
+    if (phone.length !== 11) {
+      showAlert("Phone number must be exactly 11 digits.");
+      return;
+    }
     if (userType === 'user') {
       handleUserSignUp();
     } else {
@@ -416,7 +420,15 @@ const SignUp = () => {
 
                   <tr>
                     <td><label>Phone Number:</label></td>
-                    <td><input type="number" value={phone} onChange={(e) => setPhone(e.target.value)} required /></td>
+                    <td><input type="tel" value={phone}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        // Allow only digits and limit to 11 characters
+                        if (/^\d{0,11}$/.test(value)) {
+                          setPhone(value);
+                        }
+                      }}
+                      inputMode="numeric" pattern="\d{11}" maxLength="11" minLength="11" title="Phone number must be exactly 11 digits" required /></td>
                   </tr>
                   <tr>
                     <td><label>Password:</label></td>
@@ -447,7 +459,15 @@ const SignUp = () => {
                   <tr><td><label> Registration fees is Rs 5000/- </label></td></tr>
                   <tr><td><label>Name:</label></td><td><input type="text" value={name} onChange={(e) => setName(e.target.value)} required /></td></tr>
                   <tr><td><label>Email:</label></td><td><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></td></tr>
-                  <tr><td><label>Phone Number:</label></td><td><input type="number" value={phone} onChange={(e) => setPhone(e.target.value)} required /></td></tr>
+                  <tr><td><label>Phone Number:</label></td><td><input type="tel" value={phone}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      // Allow only digits and limit to 11 characters
+                      if (/^\d{0,11}$/.test(value)) {
+                        setPhone(value);
+                      }
+                    }}
+                    inputMode="numeric" pattern="\d{11}" maxLength="11" minLength="11" title="Phone number must be exactly 11 digits" required /></td></tr>
                   <tr><td><label>Address:</label></td><td><input type="text" value={address} onChange={(e) => setAddress(e.target.value)} required /></td></tr>
                   <tr>
                     <td><label>Specialty:</label></td>

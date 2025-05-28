@@ -8,6 +8,7 @@ import "./Mechanic_portal.css";
 import CustomAlert from './CustomAlert';
 import { Button } from "@mui/material";
 import NameModal from "./CustomInputText";
+import EmailModal from "./CustomInputText";
 import PasswordModal from "./CustomInputPassword";
 
 const MyAppointments = ({ user, setUser }) => {
@@ -19,6 +20,7 @@ const MyAppointments = ({ user, setUser }) => {
     const [appointmentID, setAppointmentID] = useState("");
     const [newUsername, setnewUsername] = useState(false);
     const [showPasswordModal, setShowPasswordModal] = useState(false);
+    const [newEmailModal, setNewEmailModal] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
     const [alert, setAlert] = useState({
         show: false,
@@ -45,22 +47,22 @@ const MyAppointments = ({ user, setUser }) => {
 
     const sendApprovalEmail = async (email, messageBody) => {
         const templateParams = {
-          to_email: email,
-          message: messageBody,
+            to_email: email,
+            message: messageBody,
         };
-    
+
         try {
-          await emailjs.send(
-            'service_8kgv9m8',     // Replace with your Email.js service ID
-            'template_bpruqj9',    // Replace with your Email.js template ID
-            templateParams,
-            'YXs-aMceIqko1PuHu'      // Replace with your Email.js public key
-          );
-          console.log('Approval email sent successfully');
+            await emailjs.send(
+                'service_8kgv9m8',     // Replace with your Email.js service ID
+                'template_bpruqj9',    // Replace with your Email.js template ID
+                templateParams,
+                'YXs-aMceIqko1PuHu'      // Replace with your Email.js public key
+            );
+            console.log('Approval email sent successfully');
         } catch (error) {
-          console.error('Error sending email:', error);
+            console.error('Error sending email:', error);
         }
-      };
+    };
 
     const fetchAppointments = async () => {
         try {
@@ -147,6 +149,45 @@ const MyAppointments = ({ user, setUser }) => {
         }
     };
 
+    const handleUpdateEmail = async (newEmail) => {
+        setNewEmailModal(false);
+
+        if (!newEmail) {
+            showAlert('Email cannot be empty!');
+            return;
+        }
+
+        if (newEmail === user?.email) {
+            showAlert('New email cannot be same as current email!');
+            return;
+        }
+
+        try {
+            const response = await fetch("https://car-clinic-backend.onrender.com/updateUserEmail", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    uid: user.uid,
+                    newEmail,
+                }),
+            });
+
+            const result = await response.json();
+            if (response.ok) {
+                console.log("User name updated:", result.user);
+                showAlert('Email updated successfully!');
+                const Message = `Dear ${user.displayName}, your request for change of email is accepted successfully. Your new email will be "${newEmail}". Thank you for your time!!!`;
+                await sendApprovalEmail(newEmail, Message);
+            } else {
+                showAlert('Failed to update email');
+            }
+        } catch (err) {
+            console.error(err);
+            showAlert('Something went wrong');
+        }
+    };
+
+
     const handlePasswordChange = async (currentPassword, newPassword) => {
         setShowPasswordModal(false);
         const user = auth.currentUser;
@@ -228,6 +269,16 @@ const MyAppointments = ({ user, setUser }) => {
                                 <li>
                                     <button className="dropdown-item" onClick={() => { setnewUsername(true); handleItemClick() }}>
                                         Change Username
+                                    </button>
+                                </li>
+                                <li>
+                                    <button className="dropdown-item" onClick={() => { setNewEmailModal(true); handleItemClick() }}>
+                                        Change Email
+                                    </button>
+                                </li>
+                                <li>
+                                    <button className="dropdown-item" onClick={() => { handleItemClick() }}>
+                                        Change Phone Number
                                     </button>
                                 </li>
                                 <li>
@@ -328,6 +379,15 @@ const MyAppointments = ({ user, setUser }) => {
                 heading={"Change Username:"}
                 placeholderText={"Enter New Name Here:"}
             />
+
+            <EmailModal
+                open={newEmailModal}
+                onClose={() => setNewEmailModal(false)}
+                onConfirm={handleUpdateEmail}
+                heading={"Change Email:"}
+                placeholderText={"Enter New Email Here:"}
+            />
+
 
             <PasswordModal
                 open={showPasswordModal}
