@@ -15,7 +15,7 @@ import MechanicPortal from './Mechanic_portal';
 import Rating from './Rating';
 import { useEffect } from 'react';
 import { auth } from './firebase';
-import { getDatabase, ref, get } from "firebase/database";
+import { getDatabase, ref, get, set } from "firebase/database";
 import { onAuthStateChanged } from 'firebase/auth';
 import MyAppointments from './MyAppointments';
 import { PublicRoute, AdminRoute, MechanicRoute, UserOnlyRoute } from './ProtectedRoutes';
@@ -50,29 +50,50 @@ function App() {
   }, [user]);
 
   const checkIfMechanic = async (uid) => {
-    try {
-      const db = getDatabase();
-      const dbRef = ref(db, "approvedMechanics/" + uid);
-      const snapshot = await get(dbRef);
+  try {
+    const db = getDatabase();
+    const dbRef = ref(db, "approvedMechanics/" + uid);
+    const snapshot = await get(dbRef);
 
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-        if (data.role === "mechanic") {
-          setIsMechanic(true);
-          setMechanicData(data); // store mechanic data here
+    if (snapshot.exists()) {
+      const data = snapshot.val();
+
+      if (data.role === "mechanic") {
+        const currentYear = new Date().getFullYear();
+        const signupYear = new Date(data.signupDate).getFullYear();
+        const yearsPassed = currentYear - signupYear;
+
+        const originalExperience = parseInt(data.experience || "0", 10);
+        const calculatedNetExperience = originalExperience + yearsPassed;
+
+        // Only store if it's not already up to date
+        if (data.netExperience !== calculatedNetExperience) {
+          const updatedData = { ...data, netExperience: calculatedNetExperience };
+
+          // Update mechanic's data in Firebase only if netExperience has changed
+          await set(ref(db, "approvedMechanics/" + uid), updatedData);
+
+          setMechanicData(updatedData);
         } else {
-          setIsMechanic(false);
-          setMechanicData(null);
+          // No update needed, already accurate
+          setMechanicData(data);
         }
+
+        setIsMechanic(true);
       } else {
         setIsMechanic(false);
         setMechanicData(null);
       }
-    } catch (error) {
+    } else {
       setIsMechanic(false);
       setMechanicData(null);
     }
-  };
+  } catch (error) {
+    console.error("Error checking mechanic:", error);
+    setIsMechanic(false);
+    setMechanicData(null);
+  }
+};
 
 
   useEffect(() => {

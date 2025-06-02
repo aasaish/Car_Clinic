@@ -9,6 +9,8 @@ import ConfirmAlert from './ConfirmAlert';
 import ChargesModal from "./CustomInput";
 import NameModal from "./CustomInputText";
 import EmailModal from "./CustomInputText";
+import NumModal from "./CustomInputNum";
+import ExModal from "./CustomInputNumber";
 import PasswordModal from "./CustomInputPassword";
 import SelectModal from "./CustomSelect";
 import SelectTwoModal from "./CustomTwoSelect";
@@ -20,6 +22,7 @@ import { ref, update } from "firebase/database";
 
 
 const MechanicPortal = ({ user, setUser, mechanicData, setMechanicData }) => {
+
 
   // State to store appointments
   const [activeTable, setActiveTable] = useState('pending'); // Default table view is 'pending'
@@ -37,6 +40,9 @@ const MechanicPortal = ({ user, setUser, mechanicData, setMechanicData }) => {
   const [selectedAppointments, setSelectedAppointments] = useState(null);
   const [selectedDays, setSelectedDays] = useState({});
   const [newEmailModal, setNewEmailModal] = useState(false);
+  const [newPhoneModal, setNewPhoneModal] = useState(false);
+  const [newAddressModal, setNewAddressModal] = useState(false);
+  const [newExperienceModal, setNewExperienceModal] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [currentDay, setCurrentDay] = useState(null);
   const [timeInputs, setTimeInputs] = useState({ openHour: "", closeHour: "" });
@@ -88,7 +94,7 @@ const MechanicPortal = ({ user, setUser, mechanicData, setMechanicData }) => {
   const handleUpdateUserName = async (newName) => {
     setnewUsername(false);
 
-    if (newName === "") {
+    if (newName.trim() === "") {
       showAlert('Username cannot be empty!');
       return;
     }
@@ -97,22 +103,34 @@ const MechanicPortal = ({ user, setUser, mechanicData, setMechanicData }) => {
       showAlert('New username cannot be same as current username!');
       return;
     }
+
     try {
+      // Step 1: Update Firebase Auth display name via backend
       const response = await fetch("https://car-clinic-backend.onrender.com/updateUserName", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          uid: user.uid, // Pass the user's UID here
+          uid: user.uid,
           newName: newName,
         }),
       });
 
       const result = await response.json();
+
       if (response.ok) {
-        console.log("User name updated:", result.user);
-        showAlert('Name updated successfully!');
-        const Message = `Dear ${user.displayName}, your request for change of username is accepted successfully. Your new user name will be "${newName}". Thank you for your time!!!`
+        // Step 2: Update name in Realtime Database
+        const mechanicRef = ref(database, `approvedMechanics/${mechanicData.uid}`);
+        await update(mechanicRef, { name: newName });
+
+        // Step 3: Update frontend state
+        setMechanicData((prev) => ({ ...prev, name: newName }));
+
+        // Step 4: Send notification email
+        const Message = `Dear ${user.displayName}, your request for change of username is accepted successfully. Your new user name will be "${newName}". Thank you for your time!!!`;
         await sendApprovalEmail(user.email, Message);
+
+        // Step 5: Show success alert
+        showAlert('Name updated successfully!');
       } else {
         showAlert('Failed to update name');
       }
@@ -122,10 +140,11 @@ const MechanicPortal = ({ user, setUser, mechanicData, setMechanicData }) => {
     }
   };
 
+
   const handleUpdateEmail = async (newEmail) => {
     setNewEmailModal(false);
 
-    if (!newEmail) {
+    if (!newEmail.trim()) {
       showAlert('Email cannot be empty!');
       return;
     }
@@ -136,27 +155,132 @@ const MechanicPortal = ({ user, setUser, mechanicData, setMechanicData }) => {
     }
 
     try {
+      // Step 1: Update Firebase Auth email via backend
       const response = await fetch("https://car-clinic-backend.onrender.com/updateUserEmail", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           uid: user.uid,
-          newEmail,
+          newEmail: newEmail,
         }),
       });
 
       const result = await response.json();
+
       if (response.ok) {
-        console.log("User name updated:", result.user);
-        showAlert('Email updated successfully!');
+        // Step 2: Update email in Realtime Database
+        const mechanicRef = ref(database, `approvedMechanics/${mechanicData.uid}`);
+        await update(mechanicRef, { email: newEmail });
+
+        // Step 3: Update frontend state
+        setMechanicData((prev) => ({ ...prev, email: newEmail }));
+
+        // Step 4: Send confirmation to new email
         const Message = `Dear ${user.displayName}, your request for change of email is accepted successfully. Your new email will be "${newEmail}". Thank you for your time!!!`;
         await sendApprovalEmail(newEmail, Message);
+
+        // Step 5: Show success alert
+        showAlert('Email updated successfully!');
       } else {
         showAlert('Failed to update email');
       }
     } catch (err) {
       console.error(err);
       showAlert('Something went wrong');
+    }
+  };
+
+  const handleUpdatePhone = async (newPhone) => {
+    setNewPhoneModal(false)
+    if (!newPhone) {
+      showAlert("Phone number cannot be empty!");
+      return;
+    }
+
+    if (newPhone === mechanicData.phone) {
+      showAlert("New phone number cannot be same as current phone number!");
+      return;
+    }
+
+    try {
+      const mechanicRef = ref(database, `approvedMechanics/${mechanicData.uid}`);
+      await update(mechanicRef, { phone: newPhone });
+
+      showAlert("Phone number updated successfully!");
+
+      const Message = `Dear ${mechanicData.name}, your phone number has been successfully updated to "${newPhone}". Thank you for keeping your information up to date!`;
+      await sendApprovalEmail(mechanicData.email, Message);
+
+      // Update local mechanicData state too
+      setMechanicData((prev) => ({ ...prev, phone: newPhone }));
+    } catch (error) {
+      console.error("Error updating phone number:", error);
+      showAlert("Something went wrong while updating phone number.");
+    }
+  };
+
+  const handleUpdateAddress = async (newAddress) => {
+    setNewAddressModal(false)
+    if (!newAddress) {
+      showAlert("Address cannot be empty!");
+      return;
+    }
+
+    if (newAddress === mechanicData.address) {
+      showAlert("New address cannot be the same as the current address!");
+      return;
+    }
+
+    try {
+      const mechanicRef = ref(database, `approvedMechanics/${mechanicData.uid}`);
+      await update(mechanicRef, { address: newAddress });
+
+      showAlert("Address updated successfully!");
+
+      const Message = `Dear ${mechanicData.name}, your address has been successfully updated to "${newAddress}". Thank you for keeping your information up to date!`;
+      await sendApprovalEmail(mechanicData.email, Message);
+
+      // Update local mechanicData state too
+      setMechanicData((prev) => ({ ...prev, address: newAddress }));
+    } catch (error) {
+      console.error("Error updating address:", error);
+      showAlert("Something went wrong while updating address.");
+    }
+  };
+
+  const handleUpdateExperience = async (newExperience) => {
+    setNewExperienceModal(false)
+    if (!newExperience) {
+      showAlert("Experience cannot be empty!");
+      return;
+    }
+
+    if (newExperience === mechanicData.experience) {
+      showAlert("New experience value cannot be the same as the current one!");
+      return;
+    }
+
+    try {
+      const mechanicRef = ref(database, `approvedMechanics/${mechanicData.uid}`);
+      await update(mechanicRef, {
+        experience: newExperience,
+        netExperience: parseInt(newExperience)
+      });
+
+      showAlert("Experience updated successfully!");
+
+      const Message = `Dear ${mechanicData.name}, your experience has been successfully updated to "${newExperience}" years. Thank you for keeping your information up to date!`;
+      await sendApprovalEmail(mechanicData.email, Message);
+
+      // Update local mechanicData state too
+      setMechanicData((prev) => ({
+        ...prev,
+        experience: newExperience,
+        netExperience: parseInt(newExperience)
+      }));
+    } catch (error) {
+      console.error("Error updating experience:", error);
+      showAlert("Something went wrong while updating experience.");
     }
   };
 
@@ -754,17 +878,17 @@ const MechanicPortal = ({ user, setUser, mechanicData, setMechanicData }) => {
                   </button>
                 </li>
                 <li>
-                  <button className="dropdown-item" onClick={() => { handleItemClick() }}>
+                  <button className="dropdown-item" onClick={() => { setNewPhoneModal(true); handleItemClick() }}>
                     Change Phone Number
                   </button>
                 </li>
                 <li>
-                  <button className="dropdown-item" onClick={() => { handleItemClick() }}>
+                  <button className="dropdown-item" onClick={() => { setNewAddressModal(true); handleItemClick() }}>
                     Change Address
                   </button>
                 </li>
                 <li>
-                  <button className="dropdown-item" onClick={() => { handleItemClick() }}>
+                  <button className="dropdown-item" onClick={() => { setNewExperienceModal(true); handleItemClick() }}>
                     Change Experience
                   </button>
                 </li>
@@ -791,7 +915,18 @@ const MechanicPortal = ({ user, setUser, mechanicData, setMechanicData }) => {
               </ul>
             )}
           </div>
+
         </div>
+      </div>
+      <div className="detailRow">
+        <div>Mechanic Name: {mechanicData.name}</div>
+        <div>Email: {mechanicData.email}</div>
+        <div>Phone Number: {mechanicData.phone}</div>
+      </div>
+      <div className="detailRow">
+        <div>Address: {mechanicData.address}</div>
+        <div>Experience: {mechanicData.netExperience}</div>
+        <div>Field: {Array.isArray(mechanicData.specialties) ? mechanicData.specialties.join(', ') : mechanicData.specialties}</div>
       </div>
       <div className="admin-portal">
 
@@ -1160,6 +1295,29 @@ const MechanicPortal = ({ user, setUser, mechanicData, setMechanicData }) => {
           onConfirm={handleUpdateEmail}
           heading={"Change Email:"}
           placeholderText={"Enter New Email Here:"}
+        />
+
+        <NumModal
+          open={newPhoneModal}
+          onClose={() => setNewPhoneModal(false)}
+          onConfirm={handleUpdatePhone}
+          heading={"Change Phone Number:"}
+        />
+
+        <NameModal
+          open={newAddressModal}
+          onClose={() => setNewAddressModal(false)}
+          onConfirm={handleUpdateAddress}
+          heading={"Change Address:"}
+          placeholderText={"Enter New Address Here:"}
+        />
+
+        <ExModal
+          open={newExperienceModal}
+          onClose={() => setNewExperienceModal(false)}
+          onConfirm={handleUpdateExperience}
+          heading={"Change Experience:"}
+          placeholderText={"Enter New Experience Here:"}
         />
 
         <PasswordModal

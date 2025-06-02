@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { reauthenticateWithCredential, EmailAuthProvider, updatePassword } from "firebase/auth";
-import { auth } from './firebase';
+import { auth, database } from './firebase';
+import { ref, update } from "firebase/database";
 import emailjs from '@emailjs/browser';
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -9,6 +10,7 @@ import CustomAlert from './CustomAlert';
 import { Button } from "@mui/material";
 import NameModal from "./CustomInputText";
 import EmailModal from "./CustomInputText";
+import NumModal from "./CustomInputNum";
 import PasswordModal from "./CustomInputPassword";
 
 const MyAppointments = ({ user, setUser }) => {
@@ -21,6 +23,8 @@ const MyAppointments = ({ user, setUser }) => {
     const [newUsername, setnewUsername] = useState(false);
     const [showPasswordModal, setShowPasswordModal] = useState(false);
     const [newEmailModal, setNewEmailModal] = useState(false);
+    const [newPhoneModal, setNewPhoneModal] = useState(false);
+    const [phoneNumber, setPhoneNumber] = useState("");
     const [isOpen, setIsOpen] = useState(false);
     const [alert, setAlert] = useState({
         show: false,
@@ -36,6 +40,7 @@ const MyAppointments = ({ user, setUser }) => {
     useEffect(() => {
         if (user && user.email) {
             fetchAppointments(); // initial fetch
+            fetchPhoneNumber();
 
             const intervalId = setInterval(() => {
                 fetchAppointments(); // fetch every 3 seconds
@@ -98,6 +103,19 @@ const MyAppointments = ({ user, setUser }) => {
         }
     };
 
+    const fetchPhoneNumber = async () => {
+        try {
+            const userId = user.uid;
+            const response = await axios.get(`https://car-clinic-9cc74-default-rtdb.firebaseio.com/users/${userId}.json`);
+            if (response.data && response.data.phone) {
+                setPhoneNumber(response.data.phone);
+            } else {
+                console.log("Phone number not found.");
+            }
+        } catch (error) {
+            console.error("Error fetching phone number:", error);
+        }
+    };
 
     const deleteAppointment = async (appointmentId) => {
         try {
@@ -184,6 +202,36 @@ const MyAppointments = ({ user, setUser }) => {
         } catch (err) {
             console.error(err);
             showAlert('Something went wrong');
+        }
+    };
+
+    const handleUpdatePhone = async (newPhone) => {
+        setNewPhoneModal(false)
+        if (!newPhone) {
+            showAlert("Phone number cannot be empty!");
+            return;
+        }
+
+        if (newPhone === user.phone) {
+            showAlert("New phone number cannot be same as current phone number!");
+            return;
+        }
+
+        try {
+            // Update phone in Firebase Realtime Database
+            const userRef = ref(database, `users/${user.uid}`);
+            await update(userRef, { phone: newPhone });
+
+            showAlert("Phone number updated successfully!");
+
+            const Message = `Dear ${user.displayName}, your phone number has been successfully updated to "${newPhone}". Thank you for keeping your information up to date!`;
+            await sendApprovalEmail(user.email, Message);
+
+            // Update local state (assuming setUser exists)
+            setUser((prev) => ({ ...prev, phone: newPhone }));
+        } catch (error) {
+            console.error("Error updating phone number:", error);
+            showAlert("Something went wrong while updating phone number.");
         }
     };
 
@@ -277,7 +325,7 @@ const MyAppointments = ({ user, setUser }) => {
                                     </button>
                                 </li>
                                 <li>
-                                    <button className="dropdown-item" onClick={() => { handleItemClick() }}>
+                                    <button className="dropdown-item" onClick={() => { setNewPhoneModal(true); handleItemClick() }}>
                                         Change Phone Number
                                     </button>
                                 </li>
@@ -290,6 +338,11 @@ const MyAppointments = ({ user, setUser }) => {
                         )}
                     </div>
                 </div>
+            </div>
+            <div className="detailRow">
+                <div>Name: {user.displayName}</div>
+                <div>Email: {user.email}</div>
+                <div>Phone Number: {phoneNumber}</div>
             </div>
             <h1>My Appointments</h1>
             <div className="table">
@@ -386,6 +439,14 @@ const MyAppointments = ({ user, setUser }) => {
                 onConfirm={handleUpdateEmail}
                 heading={"Change Email:"}
                 placeholderText={"Enter New Email Here:"}
+            />
+
+            <NumModal
+                open={newPhoneModal}
+                onClose={() => setNewPhoneModal(false)}
+                onConfirm={handleUpdatePhone}
+                heading={"Change Phone Number:"}
+                placeholderText={"Enter New Phone Number Here:"}
             />
 
 

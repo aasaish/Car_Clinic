@@ -2,7 +2,8 @@
 import React, { useState } from 'react';
 import './Signup.css';
 import { signInWithPopup, GoogleAuthProvider, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { auth } from './firebase';
+import { auth, database } from './firebase';
+import { ref, set } from "firebase/database";
 import CustomAlert from './CustomAlert';
 import axios from 'axios';
 import emailjs from '@emailjs/browser';
@@ -110,24 +111,6 @@ const SignUp = () => {
   // Function to close alert
   const closeAlert = () => {
     setAlert({ show: false, message: '', onConfirm: () => { } });
-  };
-
-  // Handle form submit
-  const handleSubmit = (e, calendarLink, calendarId) => {
-    e.preventDefault();
-    if (password !== confirmPassword) {
-      showAlert('Passwords do not match!');
-      return;
-    }
-    if (phone.length !== 11) {
-      showAlert("Phone number must be exactly 11 digits.");
-      return;
-    }
-    if (userType === 'user') {
-      handleUserSignUp();
-    } else {
-      handleMechanicSignUp(calendarLink, calendarId);
-    }
   };
 
   const handleSubmitAPI = async (e) => {
@@ -285,6 +268,24 @@ const SignUp = () => {
     }
   };
 
+  // Handle form submit
+  const handleSubmit = (e, calendarLink, calendarId) => {
+    e.preventDefault();
+    if (password !== confirmPassword) {
+      showAlert('Passwords do not match!');
+      return;
+    }
+    if (phone.length !== 11) {
+      showAlert("Phone number must be exactly 11 digits.");
+      return;
+    }
+    if (userType === 'user') {
+      handleUserSignUp();
+    } else {
+      handleMechanicSignUp(calendarLink, calendarId);
+    }
+  };
+
   const handleUserSignUp = async () => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -295,6 +296,14 @@ const SignUp = () => {
       // Set the display name
       await updateProfile(user, {
         displayName: name
+      });
+
+      await set(ref(database, `users/${user.uid}`), {
+        name,
+        email: user.email,
+        phone,
+        role: "user", // or any other relevant info
+        signupDate: new Date().toISOString()
       });
 
       console.log("User registered:", user);
@@ -344,6 +353,7 @@ const SignUp = () => {
         calendarLink: calendarLink,
         calendarId: calendarId,
         paymentProof: `https://drive.google.com/file/d/${fileId}/view`,
+        signupDate: new Date().toISOString()
       };
 
       console.log(mechanicData);
@@ -481,7 +491,17 @@ const SignUp = () => {
                       </select>
                     </td>
                   </tr>
-                  <tr><td><label>Experience:</label></td><td><input type="text" value={experience} onChange={(e) => setExperience(e.target.value)} required /></td></tr>
+                  <tr><td><label>Experience (in years):</label></td>
+                    <td><input type="text" value={experience}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        // Allow only digits and limit to 11 characters
+                        if (/^\d{0,2}$/.test(value)) {
+                          setExperience(value);
+                        }
+                      }}
+                      inputMode="numeric" maxLength="2" minLength="1" title="Please Enter Experince in years"
+                      required /></td></tr>
                   <tr><td><label>Payment Proof </label></td>
                     <td>
                       <input
