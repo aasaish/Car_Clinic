@@ -1350,8 +1350,7 @@ const MechanicPortal = ({ user, setUser, mechanicData, setMechanicData }) => {
           heading="Remove Your Field:"
           currentFields={mechanicData?.specialties}
         />
-
-
+        
       </div>
     </>
   );

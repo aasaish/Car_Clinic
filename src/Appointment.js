@@ -4,10 +4,10 @@ import { useNavigate } from "react-router-dom"; // Import useNavigate
 import CustomAlert from './CustomAlert';
 import emailjs from '@emailjs/browser';
 import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { FaMapMarkedAlt } from "react-icons/fa";
 import "./Appointment.css";
 
 const Appointment = ({ user, setUser }) => {
-  // const [visitPreference, setVisitPreference] = useState([]);
   const [showCalendar, setShowCalendar] = useState(false);
   const [calendarUrl, setCalendarUrl] = useState("");
   const [formData, setFormData] = useState({
@@ -45,13 +45,6 @@ const Appointment = ({ user, setUser }) => {
   const mechanicsURL = "https://car-clinic-9cc74-default-rtdb.firebaseio.com/approvedMechanics.json";
   const firebaseURL = "https://car-clinic-9cc74-default-rtdb.firebaseio.com/appointments.json";
   const navigate = useNavigate(); // Using useNavigate
-
-  const calendarURLs = {
-    Mechanic: "<iframe src='https://link.urgentincome.com/widget/booking/XDjbvVQWbM1Eo3gCfAcv' style='width: 100%; height: 900px; border:none; overflow: hidden;' scrolling='no'></iframe>",
-    Electrician: "<iframe src='https://link.urgentincome.com/widget/booking/a5dRvrcfrovYpv0Koxrb' style='width: 100%; height: 900px; border:none; overflow: hidden;' scrolling='no'></iframe>",
-    Dentor: "<iframe src='https://link.urgentincome.com/widget/booking/caCbEhgV2vt8ZvH2dZVi' style='width: 100%; height: 900px; border:none; overflow: hidden;' scrolling='no'></iframe>",
-    Painter: "<iframe src='https://link.urgentincome.com/widget/booking/VHnozNYb1gW3tG9f11CC' style='width: 100%; height: 900px; border:none; overflow: hidden;' scrolling='no'></iframe>",
-  };
 
   useEffect(() => {
     const fetchMechanics = async () => {
@@ -154,18 +147,18 @@ const Appointment = ({ user, setUser }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-
+    
     if (name === "mobile") {
-    // Allow only numbers, max 11 characters
-    if (/^\d{0,11}$/.test(value)) {
-      setFormData((prevData) => ({
-        ...prevData,
-        [name]: value,
-      }));
+      // Allow only numbers, max 11 characters
+      if (/^\d{0,11}$/.test(value)) {
+        setFormData((prevData) => ({
+          ...prevData,
+          [name]: value,
+        }));
+      }
+      return; // Exit early for mobile field
     }
-    return; // Exit early for mobile field
-  }
-
+    
     // If the selected field is 'mechanic', also update the calendar link
     if (name === "mechanic") {
       const selectedMechanic = mechanics.find((m) => m.name === value);
@@ -181,7 +174,7 @@ const Appointment = ({ user, setUser }) => {
       setFormData({
         ...formData,
         [name]: value,
-      });
+      });      
     }
   };
 
@@ -197,12 +190,17 @@ const Appointment = ({ user, setUser }) => {
       mechanicEmail: formData.mechanicEmail,
     };
 
+    if (formData.visitPreference === "") {
+      showAlert(
+        "Please choose visit preference!"
+      );
+      return
+    }
+
     try {
       await axios.post(firebaseURL, updatedFormData, {
         headers: { "Content-Type": "application/json" },
       });
-
-
 
       if (formData.visitPreference === "I Will Visit" && formData.calendarLink) {
         setCalendarUrl(formData.calendarLink); // Show selected mechanic's calendar
@@ -249,6 +247,21 @@ const Appointment = ({ user, setUser }) => {
     }
   };
 
+  const handleMapClick = () => {
+    const address = formData.address;
+    if (address.trim()) {
+      const query = encodeURIComponent(address.trim());
+      window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, "_blank");
+    }
+  };
+
+  const handleMechanicMapClick = (Address) => {
+    const address = Address;
+    if (address.trim()) {
+      const query = encodeURIComponent(address.trim());
+      window.open(`https://www.google.com/maps/search/?api=1&query=${query}`, "_blank");
+    }
+  };
 
   if (!isAuthenticated) {
     return <div>Please log in to access the appointment page.</div>; // Show message if not authenticated
@@ -301,13 +314,25 @@ const Appointment = ({ user, setUser }) => {
 
           <div className="labels">
             <label>Address:</label>
-            <textarea
-              name="address"
-              value={formData.address}
-              onChange={handleChange}
-              required
-            ></textarea>
+            <div className="textarea-with-icon">
+              <textarea
+                name="address"
+                value={formData.address}
+                onChange={handleChange}
+                required
+              ></textarea>
+              <FaMapMarkedAlt
+                className="maps-icon"
+                onClick={formData.address.trim() ? handleMapClick : null}
+                style={{
+                  cursor: formData.address.trim() ? "pointer" : "not-allowed",
+                  opacity: formData.address.trim() ? 1 : 0.5,
+                }}
+                title={formData.address.trim() ? "View it on Map" : "Enter address to enable map"}
+              />
+            </div>
           </div>
+
 
           <div className="labels">
             <label>Query:</label>
@@ -363,21 +388,36 @@ const Appointment = ({ user, setUser }) => {
           {/* Select Mechanic (Disabled if No Service is Selected) */}
           <div className="labels">
             <label>Select Mechanic:</label>
-            <select
-              id="mechanic"
-              name="mechanic"
-              value={formData.mechanic}
-              onChange={handleChange}
-              required
-              disabled={!formData.selectedServices || filteredMechanics.length === 0}
-            >
-              <option value="">Select a mechanic</option>
-              {filteredMechanics.map((mechanic, index) => (
-                <option key={index} value={mechanic.name}>
-                  {mechanic.name} - Rating: {mechanic.averageRating || "No rating yet"}/5.0 - Address: {mechanic.address}
-                </option>
-              ))}
-            </select>
+            <div className="select-with-icon">
+              <select
+                id="mechanic"
+                name="mechanic"
+                value={formData.mechanic}
+                onChange={handleChange}
+                required
+                disabled={!formData.selectedServices || filteredMechanics.length === 0}
+              >
+                <option value="">Select a mechanic</option>
+                {filteredMechanics.map((mechanic, index) => (
+                  <option key={index} value={mechanic.name}>
+                    {mechanic.name} - Rating: {mechanic.averageRating || "No rating yet"}/5.0 - Address: {mechanic.address}
+                  </option>
+                ))}
+              </select>
+              {formData.mechanic && (() => {
+                const selectedMechanic = filteredMechanics.find(
+                  (mech) => mech.name === formData.mechanic
+                );
+                return selectedMechanic?.address ? (
+                  <FaMapMarkedAlt
+                    className="maps-icon"
+                    onClick={() => handleMechanicMapClick(selectedMechanic.address)}
+                    style={{ cursor: "pointer" }}
+                    title="View map on another tab"
+                  />
+                ) : null;
+              })()}
+            </div>
           </div>
 
           <div className="choices">
@@ -398,6 +438,25 @@ const Appointment = ({ user, setUser }) => {
               </div>
             </div>
           </div>
+
+          {formData.mechanic && filteredMechanics.length > 0 && (
+            <div className="embedded-map-container" style={{ marginTop: "10px" }}>
+              <h3>Mechanic Location Preview:</h3>
+              <iframe
+                title="Mechanic Location"
+                width="100%"
+                height="250"
+                style={{ border: 0, borderRadius: "8px" }}
+                loading="lazy"
+                allowFullScreen
+                referrerPolicy="no-referrer-when-downgrade"
+                src={`https://www.google.com/maps?q=${encodeURIComponent(
+                  filteredMechanics.find((m) => m.name === formData.mechanic)?.address || ""
+                )}&output=embed`}
+              ></iframe>
+            </div>
+          )}
+
           <div>
             <button type="submit">Submit</button>
           </div>
@@ -412,6 +471,7 @@ const Appointment = ({ user, setUser }) => {
             <b />
             <h5>And this appointment booking request is for {afterFormData.selectedServices} and {afterFormData.mechanic} will provide you services!!!</h5>
             <iframe
+              title="calendarFrame"
               src={calendarUrl}
               style={{ width: "100%", height: "900px", border: "none", overflow: "hidden" }}
             ></iframe>

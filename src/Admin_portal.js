@@ -17,7 +17,9 @@ const AdminPortal = ({ user, setUser }) => {
   const [queriesData, setQueriesData] = useState([]);
   const [ratingsData, setRatingsData] = useState([]);
   const [usersData, setUsersData] = useState([]);
+  const [disabledUsers, setDisabledUsers] = useState([]);
   const [mechanicsData, setMechanicsData] = useState([]);
+  const [disableMechanicsData, setDisableMechanicsData] = useState([]);
   const [mechanicsRequestData, setMechanicsRequestData] = useState([]);
   const [selectedMechanic, setSelectedMechanic] = useState(null);
   const [selectedMechanicID, setSelectedMechanicID] = useState("");
@@ -25,6 +27,10 @@ const AdminPortal = ({ user, setUser }) => {
   const [showDeclineBox, setShowDeclineBox] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [showAdminConfirmation, setShowAdminConfirmation] = useState(false);
+  const [showMechanicEnable, setShowMechanicEnable] = useState(false);
+  const [showMechanicDelete, setShowMechanicDelete] = useState(false);
+  const [showAdminEnableConfirmation, setShowAdminEnableConfirmation] = useState(false);
+  const [showAdminDeleteConfirmation, setShowAdminDeleteConfirmation] = useState(false);
   const [showConfirmationBox, setShowConfirmationBox] = useState(false);
   const [showRejectionBox, setShowRejectionBox] = useState(false);
   const [newUsername, setnewUsername] = useState(false);
@@ -52,7 +58,18 @@ const AdminPortal = ({ user, setUser }) => {
     }
   };
 
+  const fetchDisabledUsers = async () => {
+    try {
+      const response = await axios.get("https://car-clinic-backend.onrender.com/getDisabledUsers");
+      setDisabledUsers(response.data); // Assuming you have a state like `const [disabledUsers, setDisabledUsers] = useState([])`
+    } catch (error) {
+      console.error("Error fetching disabled users:", error);
+    }
+  };
+
+
   const approvedMechanicsFirebaseURL = 'https://car-clinic-9cc74-default-rtdb.firebaseio.com/approvedMechanics.json';
+  const disableMechanicsFirebaseURL = 'https://car-clinic-9cc74-default-rtdb.firebaseio.com/disabledMechanics.json';
   const MechanicsRequestFirebaseURL = 'https://car-clinic-9cc74-default-rtdb.firebaseio.com/mechanicRequests.json';
 
 
@@ -81,12 +98,25 @@ const AdminPortal = ({ user, setUser }) => {
 
       // Merge both arrays
       setMechanicsData([...mechanicsArray, ...approvedArray]);
+      console.log(mechanicsData);
+      
 
     } catch (error) {
       console.error('Error fetching mechanics:', error);
     }
   };
 
+
+  // Fetch Queries Data from Firebase
+  const fetchDisableMechanicData = async () => {
+    try {
+      const response = await axios.get(disableMechanicsFirebaseURL);
+      const itemsArray = Object.values(response?.data || {});
+      setDisableMechanicsData(itemsArray);
+    } catch (error) {
+      console.error('Error fetching queries:', error);
+    }
+  };
 
   // Fetch Queries Data from Firebase
   const fetchQueriesData = async () => {
@@ -126,6 +156,8 @@ const AdminPortal = ({ user, setUser }) => {
     fetchRatingsData();
     fetchMechanicsData();
     fetchMechanicRequestsData();
+    fetchDisabledUsers();
+    fetchDisableMechanicData();
   }, []);
 
   const showAlert = (message, onConfirm) => {
@@ -164,17 +196,18 @@ const AdminPortal = ({ user, setUser }) => {
 
   const handleAdminConfirm = async () => {
     try {
-      await axios.delete(`https://car-clinic-backend.onrender.com/deleteUser/${setterId}`);
-      showAlert("User removed successfully.");
+      await axios.post(`https://car-clinic-backend.onrender.com/disableUser/${setterId}`);
+      showAlert("User disabled successfully.");
       fetchUsersData(); // Refresh user list
-      const Message = `Dear ${selectedMechanic.name}, unfortunately you have been removed by the admin of Car Clinic. We are sorry for the inconveninence.`
+      fetchDisabledUsers();
+      const Message = `Dear ${selectedMechanic.name}, your account has been disabled by the Car Clinic admin. Please contact support for more details.`;
       await sendApprovalEmail(selectedMechanic.email, Message);
-      setSetterId("")
+      setSetterId("");
       setSelectedMechanic(null);
       setShowAdminConfirmation(false);
     } catch (error) {
-      console.error("Error removing user:", error);
-      showAlert("Failed to remove user.");
+      console.error("Error disabling user:", error);
+      showAlert("Failed to disable user.");
     }
   };
 
@@ -182,6 +215,59 @@ const AdminPortal = ({ user, setUser }) => {
     setShowAdminConfirmation(false);
   };
 
+  const handleEnableUser = async (user, uid) => {
+    setShowAdminEnableConfirmation(true);
+    setSelectedMechanic(user);
+    setSetterId(uid)
+  };
+
+  const handleAdminEnableConfirm = async () => {
+    try {
+      await axios.post(`https://car-clinic-backend.onrender.com/enableUser/${setterId}`);
+      showAlert("User enabled successfully.");
+      fetchUsersData(); // Refresh user list
+      fetchDisabledUsers();
+      const Message = `Dear ${selectedMechanic.name}, your account has been enabled by the Car Clinic admin.`;
+      await sendApprovalEmail(selectedMechanic.email, Message);
+      setSetterId("");
+      setSelectedMechanic(null);
+      setShowAdminEnableConfirmation(false);
+    } catch (error) {
+      console.error("Error enabling user:", error);
+      showAlert("Failed to enable user.");
+    }
+  };
+
+  const handleAdminEnableCancel = () => {
+    setShowAdminEnableConfirmation(false);
+  };
+
+  const handleDeleteUser = async (user, uid) => {
+    setShowAdminDeleteConfirmation(true);
+    setSelectedMechanic(user);
+    setSetterId(uid)
+  };
+
+  const handleDeleteConfirm = async () => {
+    try {
+      await axios.delete(`https://car-clinic-backend.onrender.com/deleteUser/${setterId}`);
+      showAlert("User removed successfully.");
+      fetchUsersData();
+      fetchDisabledUsers(); // Refresh user list
+      const Message = `Dear ${selectedMechanic.name}, unfortunately you have been removed by the admin of Car Clinic. We are sorry for the inconveninence.`
+      await sendApprovalEmail(selectedMechanic.email, Message);
+      setSetterId("")
+      setSelectedMechanic(null);
+      setShowAdminDeleteConfirmation(false);
+    } catch (error) {
+      console.error("Error removing user:", error);
+      showAlert("Failed to remove user.");
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setShowAdminDeleteConfirmation(false);
+  };
 
   const handleApprove = (mechanic) => {
     setShowConfirmationBox(true);
@@ -319,19 +405,105 @@ const AdminPortal = ({ user, setUser }) => {
 
   const handleConfirm = async () => {
     try {
+      // 1. Fetch the mechanic data first
+      const response = await axios.get(`https://car-clinic-9cc74-default-rtdb.firebaseio.com/approvedMechanics/${setterId}.json`);
+      const mechanicData = response.data;
+
+      if (!mechanicData) {
+        showAlert('Mechanic data not found.');
+        return;
+      }
+
+      // 2. Save it to `disabledMechanics`
+      await axios.put(`https://car-clinic-9cc74-default-rtdb.firebaseio.com/disabledMechanics/${setterId}.json`, mechanicData);
+
+      // 3. Delete from `approvedMechanics`
       await axios.delete(`https://car-clinic-9cc74-default-rtdb.firebaseio.com/approvedMechanics/${setterId}.json`);
-      showAlert('Mechanic is removed.');
-      fetchMechanicsData(); // Refresh data
-      handleAdminConfirm();
+
+      showAlert('Mechanic has been disabled and removed.');
+      const Message = `Dear ${selectedMechanic.name}, unfortunately you have been disabled by the admin of Car Clinic. Please contact support for more details.`
+      await sendApprovalEmail(selectedMechanic.email, Message);
+      fetchMechanicsData(); // Refresh list
+      fetchDisableMechanicData();
+      fetchUsersData();
+      handleDeleteConfirm();
       setSelectedMechanic("");
       setShowConfirmation(false);
     } catch (error) {
-      console.error('Error removing mechanic:', error);
+      console.error('Error disabling mechanic:', error);
+      showAlert('Failed to disable mechanic.');
     }
   };
 
   const handleCancel = () => {
     setShowConfirmation(false);
+  };
+
+  const handleEnable = (mechanic, id) => {
+    setShowMechanicEnable(true);
+    setSelectedMechanic(mechanic);
+    setSetterId(id)
+  };
+
+  const handleEnableMechanic = async () => {
+    try {
+      const response = await fetch("https://car-clinic-backend.onrender.com/enableMechanic", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(selectedMechanic)
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        showAlert(`Mechanic ${selectedMechanic?.name} is enabled!!!`);
+        await axios.delete(`https://car-clinic-9cc74-default-rtdb.firebaseio.com/disabledMechanics/${setterId}.json`);
+        const Message = `Dear ${selectedMechanic.name}, your have been enabled again. You can now log in to our system Car Clinic as a mechanic.`
+        await sendApprovalEmail(selectedMechanic.email, Message);
+        fetchDisableMechanicData(); // Refresh UI
+        fetchMechanicsData();
+        fetchUsersData();
+        setSelectedMechanic(null);
+        setSetterId("");
+      } else {
+        showAlert(`Failed to enable mechanic: ${data.error}`);
+      }
+      setShowMechanicEnable(false);
+    } catch (error) {
+      console.error("Error in enabling mechanic:", error);
+      showAlert(`Failed to enable mechanic: ${error.message}`);
+    }
+  };
+
+  const handleEnableMechanicCancel = () => {
+    setShowMechanicEnable(false);
+  };
+
+  const handleDelete = async (mechanic, id) => {
+    setShowMechanicDelete(true);
+    setSelectedMechanic(mechanic);
+    setSetterId(id)
+  };
+
+  const handleDeleteMechanic = async () => {
+    try {
+      await axios.delete(`https://car-clinic-9cc74-default-rtdb.firebaseio.com/disabledMechanics/${setterId}.json`);
+      showAlert('Mechanic is deleted permanently.');
+      fetchDisableMechanicData(); // Refresh data
+      setSelectedMechanic("");
+      setSetterId("");
+      setShowMechanicDelete(false);
+      const Message = `Dear ${selectedMechanic.name}, unfortunately you have been removed permanently by the admin of Car Clinic. We are sorry for the inconveninence.`
+      await sendApprovalEmail(selectedMechanic.email, Message); 
+    } catch (error) {
+      console.error('Error deleting mechanic:', error);
+    }
+  };
+
+  const handleDeleteMechanicCancel = () => {
+    setShowMechanicDelete(false);
   };
 
   const handleUpdateUserName = async (newName) => {
@@ -446,7 +618,9 @@ const AdminPortal = ({ user, setUser }) => {
       <div className="admin-portal">
         <div className="sidebar">
           <button onClick={() => setActiveTable('user')}>Users</button>
+          <button onClick={() => setActiveTable('disableUser')}>Disabled Users</button>
           <button onClick={() => setActiveTable('mechanic')}>Mechanics</button>
+          <button onClick={() => setActiveTable('disableMechanic')}>Disabled Mechanics</button>
           <button onClick={() => setActiveTable('queries')}>Queries</button>
           <button onClick={() => setActiveTable('ratings')}>Ratings</button>
         </div>
@@ -458,25 +632,56 @@ const AdminPortal = ({ user, setUser }) => {
                 <tr>
                   <th>Name</th>
                   <th>Email</th>
-                  {/* <th>Phone Number</th> */}
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {usersData.map((user, index) => (
-                  <tr key={index}>
-                    <td>{user.name}</td>
-                    <td>{user.email}</td>
-                    {/* <td>{user.phone}</td> */}
-                    <td>
-                      <button className="reject-btn" onClick={() => handleRemoveUser(user, user.uid)}>Remove</button>
-                    </td>
+                {usersData.length > 0 ? (
+                  usersData.map((user, index) => (
+                    <tr key={index}>
+                      <td>{user.name}</td>
+                      <td>{user.email}</td>
+                      <td>
+                        <button className="reject-btn" onClick={() => handleRemoveUser(user, user.uid)}>Disable</button>
+                      </td>
+                    </tr>
+                  ))) : (
+                  <tr>
+                    <td colSpan="3">Users are loading!!!</td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           )}
 
+          {activeTable === 'disableUser' && (
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {disabledUsers.length > 0 ? (
+                  disabledUsers.map((user, index) => (
+                    <tr key={index}>
+                      <td>{user.name}</td>
+                      <td>{user.email}</td>
+                      <td>
+                        <button className="approve-btn" onClick={() => handleEnableUser(user, user.uid)}>Enable</button>
+                        <button className="reject-btn" onClick={() => handleDeleteUser(user, user.uid)} style={{ marginLeft: "10px" }}>Remove</button>
+                      </td>
+                    </tr>
+                  ))) : (
+                  <tr>
+                    <td colSpan="3">No User is disabled yet.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          )}
 
           {activeTable === 'mechanic' && (
             <>
@@ -494,31 +699,36 @@ const AdminPortal = ({ user, setUser }) => {
                   </tr>
                 </thead>
                 <tbody>
-                  {mechanicsData.map((mechanic, index) => (
-                    <tr key={index}>
-                      <td>{mechanic.name}</td>
-                      <td>{mechanic.email}</td>
-                      <td>{mechanic.phone}</td>
-                      <td>{mechanic.experience}</td>
-                      <td>{Array.isArray(mechanic.specialties) ? mechanic.specialties.join(', ') : mechanic.specialties}</td>
-                      <td>
-                        <a href={mechanic.paymentProof} target="_blank" rel="noopener noreferrer">
-                          <button className="approve-btn">View</button>
-                        </a>
-                      </td>
-                      <td>{mechanic.address}</td>
-                      <td>
-                        {mechanic.status === 'pending' ? (
-                          <>
-                            <button className="approve-btn" onClick={() => handleApprove(mechanic)}>Approve</button>
-                            <button className="reject-btn" onClick={() => handleReject(mechanic, mechanic.id)}>Remove</button>
-                          </>
-                        ) : (
-                          <button className="reject-btn" onClick={() => handleRemove(mechanic, mechanic.id)}>Remove</button>
-                        )}
-                      </td>
+                  {mechanicsData.length > 0 ? (
+                    mechanicsData.map((mechanic, index) => (
+                      <tr key={index}>
+                        <td>{mechanic.name}</td>
+                        <td>{mechanic.email}</td>
+                        <td>{mechanic.phone}</td>
+                        <td>{mechanic.experience}</td>
+                        <td>{Array.isArray(mechanic.specialties) ? mechanic.specialties.join(', ') : mechanic.specialties}</td>
+                        <td>
+                          <a href={mechanic.paymentProof} target="_blank" rel="noopener noreferrer">
+                            <button className="approve-btn">View</button>
+                          </a>
+                        </td>
+                        <td>{mechanic.address}</td>
+                        <td>
+                          {mechanic.status === 'pending' ? (
+                            <>
+                              <button className="approve-btn" onClick={() => handleApprove(mechanic)}>Approve</button>
+                              <button className="reject-btn" onClick={() => handleReject(mechanic, mechanic.id)}>Reject</button>
+                            </>
+                          ) : (
+                            <button className="reject-btn" onClick={() => handleRemove(mechanic, mechanic.id)}>Disable</button>
+                          )}
+                        </td>
+                      </tr>
+                    ))) : (
+                    <tr>
+                      <td colSpan="8">No Mechanic is registered yet.</td>
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </table>
               <br />
@@ -551,6 +761,49 @@ const AdminPortal = ({ user, setUser }) => {
                 </table>
               )}
             </>
+          )}
+
+          {activeTable === 'disableMechanic' && (
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Phone Number</th>
+                  <th>Experience</th>
+                  <th>Field</th>
+                  <th>Sign Up Fee</th>
+                  <th>Address</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {disableMechanicsData.length > 0 ? (
+                  disableMechanicsData.map((mechanic, index) => (
+                    <tr key={index}>
+                      <td>{mechanic.name}</td>
+                      <td>{mechanic.email}</td>
+                      <td>{mechanic.phone}</td>
+                      <td>{mechanic.experience}</td>
+                      <td>{Array.isArray(mechanic.specialties) ? mechanic.specialties.join(', ') : mechanic.specialties}</td>
+                      <td>
+                        <a href={mechanic.paymentProof} target="_blank" rel="noopener noreferrer">
+                          <button className="approve-btn">View</button>
+                        </a>
+                      </td>
+                      <td>{mechanic.address}</td>
+                      <td>
+                        <button className="approve-btn" onClick={() => handleEnable(mechanic, mechanic.uid)}>Enable</button>
+                        <button className="reject-btn" onClick={() => handleDelete(mechanic, mechanic.uid)}>Delete</button>
+                      </td>
+                    </tr>
+                  ))) : (
+                  <tr>
+                    <td colSpan="8">No Mechanic is disabled yet.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           )}
 
           {activeTable === 'queries' && (
@@ -614,9 +867,23 @@ const AdminPortal = ({ user, setUser }) => {
         )}
         {showAdminConfirmation && (
           <ConfirmAlert
-            message={"Are you sure to Remove this user?"}
+            message={"Are you sure to Disable this user?"}
             onConfirm={handleAdminConfirm}
             onCancel={handleAdminCancel}
+          />
+        )}
+        {showAdminEnableConfirmation && (
+          <ConfirmAlert
+            message={"Are you sure to Enable this user?"}
+            onConfirm={handleAdminEnableConfirm}
+            onCancel={handleAdminEnableCancel}
+          />
+        )}
+        {showAdminDeleteConfirmation && (
+          <ConfirmAlert
+            message={"Are you sure to Remove this user permanently?"}
+            onConfirm={handleDeleteConfirm}
+            onCancel={handleDeleteCancel}
           />
         )}
         {showApproveField && (
@@ -649,9 +916,23 @@ const AdminPortal = ({ user, setUser }) => {
         )}
         {showConfirmation && (
           <ConfirmAlert
-            message={"Are you sure to Remove this mechanic?"}
+            message={"Are you sure to Disable this mechanic?"}
             onConfirm={handleConfirm}
             onCancel={handleCancel}
+          />
+        )}
+        {showMechanicEnable && (
+          <ConfirmAlert
+            message={"Are you sure to Enable this mechanic?"}
+            onConfirm={handleEnableMechanic}
+            onCancel={handleEnableMechanicCancel}
+          />
+        )}
+        {showMechanicDelete && (
+          <ConfirmAlert
+            message={"Are you sure to Delete this mechanic permanently?"}
+            onConfirm={handleDeleteMechanic}
+            onCancel={handleDeleteMechanicCancel}
           />
         )}
         <NameModal

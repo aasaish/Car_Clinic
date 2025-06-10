@@ -138,6 +138,44 @@ h4{
   overflow: hidden;
 }
 
+.textarea-with-icon,
+.select-with-icon {
+  position: relative;
+  width: 102.5%;
+}
+
+.textarea-with-icon textarea {
+  width: 100%;
+  padding-right: 40px; /* make space for icon */
+  padding-top: 12px;
+  padding-bottom: 12px;
+  font-size: 16px;
+  resize: vertical; /* allow resizing if needed */
+  box-sizing: border-box;
+}
+
+.select-with-icon select {
+  width: 100%;
+  padding-right: 40px; /* make space for icon */
+  padding-top: 12px;
+  padding-bottom: 12px;
+  font-size: 16px;
+  resize: vertical; /* allow resizing if needed */
+  box-sizing: border-box;
+}
+
+.maps-icon {
+  position: absolute;
+  top: 50%;
+  right: 20px;
+  transform: translateY(-50%);
+  color: #f4b942;
+  font-size: 1.2rem;
+  transition: opacity 0.2s ease, cursor 0.2s ease;
+}
+
+
+
 /* Responsive Design for Small Screens */
 @media (max-width: 768px) {
   .appointment-page {

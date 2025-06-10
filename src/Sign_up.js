@@ -7,6 +7,7 @@ import { ref, set } from "firebase/database";
 import CustomAlert from './CustomAlert';
 import axios from 'axios';
 import emailjs from '@emailjs/browser';
+import { FaMapMarkedAlt } from "react-icons/fa";
 import { Checkbox, Dialog, DialogTitle, DialogContent, DialogActions, Button, FormControl, InputLabel, Select, MenuItem } from "@mui/material";
 
 
@@ -478,7 +479,30 @@ const SignUp = () => {
                       }
                     }}
                     inputMode="numeric" pattern="\d{11}" maxLength="11" minLength="11" title="Phone number must be exactly 11 digits" required /></td></tr>
-                  <tr><td><label>Address:</label></td><td><input type="text" value={address} onChange={(e) => setAddress(e.target.value)} required /></td></tr>
+                  <tr>
+                    <td><label>Address:</label></td>
+                    <td>
+                      <div className="address-with-icon">
+                        <input
+                          type="text"
+                          value={address}
+                          onChange={(e) => setAddress(e.target.value)}
+                          required
+                          className="address-input"
+                        />
+                        <FaMapMarkedAlt
+                          className="map-icon"
+                          onClick={() => {
+                            if (address.trim()) {
+                              const mapUrl = `https://www.google.com/maps?q=${encodeURIComponent(address.trim())}`;
+                              window.open(mapUrl, "_blank");
+                            }
+                          }}
+                          title={address.trim() ? "View it on Map" : "Enter address to enable map"}
+                        />
+                      </div>
+                    </td>
+                  </tr>
                   <tr>
                     <td><label>Specialty:</label></td>
                     <td>

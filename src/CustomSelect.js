@@ -5,13 +5,11 @@ import styles from './Confirmation.module.css';
 
 const SelectModal = ({ open, onClose, onConfirm, heading, currentField }) => {
     const [newField, setNewField] = useState("");
-    const [isSubmitting, setIsSubmitting] = useState(false);
 
 
     if (!open) return null;
 
     const handleConfirm = () => {
-        setIsSubmitting(true);
         onConfirm(newField);
         setNewField("");
     };
@@ -40,7 +38,7 @@ const SelectModal = ({ open, onClose, onConfirm, heading, currentField }) => {
                     ))}
                 </select>
                 <div className={styles.buttonContainer}>
-                    <button className={styles.confirmButton} onClick={handleConfirm} disabled={!newField || isSubmitting}>
+                    <button className={styles.confirmButton} onClick={handleConfirm} disabled={!newField}>
                         OK
                     </button>
                     <button className={styles.cancelButton} onClick={onClose}>

@@ -19,7 +19,7 @@ const Home = () => {
     const fetchTopMechanics = async () => {
       try {
         const response = await axios.get("https://car-clinic-9cc74-default-rtdb.firebaseio.com/approvedMechanics.json");
-console.log(response.data);
+console.log("top two",response.data);
 
         if (response?.data) {
           const mechanicsArray = Object.values(response.data);
