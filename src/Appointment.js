@@ -51,7 +51,6 @@ const Appointment = ({ user, setUser }) => {
       try {
         const response = await axios.get(mechanicsURL);
         if (response?.data) {
-          console.log("Fetched mechanics data:", response.data);
 
           const approvedMechanics = Object.values(response?.data);
 
@@ -101,7 +100,6 @@ const Appointment = ({ user, setUser }) => {
     const auth = getAuth();
     onAuthStateChanged(auth, (user) => {
       if (user) {
-        console.log("User Authenticated ,", user);
         setIsAuthenticated(true);
       } else {
         setIsAuthenticated(false);

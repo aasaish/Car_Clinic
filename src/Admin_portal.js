@@ -98,7 +98,6 @@ const AdminPortal = ({ user, setUser }) => {
 
       // Merge both arrays
       setMechanicsData([...mechanicsArray, ...approvedArray]);
-      console.log(mechanicsData);
       
 
     } catch (error) {
